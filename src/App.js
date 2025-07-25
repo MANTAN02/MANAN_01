@@ -117,9 +117,7 @@ function CenteredSearchBar({ searchValue, onSearchChange }) {
   );
 }
 
-function HomePage() {
-  return <div className="sidebar-landing-page">Welcome to Swapin! Start browsing or list your first item.</div>;
-}
+
 function OffersPage() {
   return <div className="sidebar-landing-page">Your Offers and Transactions</div>;
 }
@@ -190,13 +188,9 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
-function ListItemPageWithSkip(props) {
-  const navigate = useNavigate();
-  return <ListItemPage {...props} onSkip={() => navigate('/browse')} />;
-}
+
 
 function MyListingsPage() {
-  const { user } = useAuth();
   // Placeholder: show only user's items
   return <div className="sidebar-landing-page">My Listings (Your posted ads will appear here)</div>;
 }
@@ -275,7 +269,7 @@ function AppRoutes({ userItems, handleListItem, handlePurchase, handleOfferExcha
   const location = useLocation();
   return (
     <Routes>
-      <Route path="/" element={<HomePage />} />
+      <Route path="/" element={<BrowsePage userItems={userItems} onAddToCart={handlePurchase} onOfferExchange={handleOfferExchange} onOfferFullPrice={handlePurchase} search={search} searchCategory={location.state?.searchCategory} />} />
       <Route path="/browse" element={<BrowsePage userItems={userItems} onAddToCart={handlePurchase} onOfferExchange={handleOfferExchange} onOfferFullPrice={handlePurchase} search={search} searchCategory={location.state?.searchCategory} />} />
       <Route path="/list" element={<ListItemPage onSubmit={handleListItem} />} />
       <Route path="/offers" element={<OffersPage />} />
