@@ -9,11 +9,14 @@ import ExchangeOfferPage from "./pages/ExchangeOfferPage";
 import UserProfilePage from "./pages/UserProfilePage";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
+import CartPage from "./pages/CartPage";
+import UpdatesPage from "./pages/UpdatesPage";
 import Header from "./components/Header";
 import { AuthProvider, useAuth } from "./AuthContext";
+import { CartProvider } from "./components/CartContext";
 import "./styles.css";
 import { initialItems } from './pages/BrowsePage';
-import { FaBars, FaUser, FaBell, FaStore, FaList, FaHeart, FaCog, FaSignOutAlt } from 'react-icons/fa';
+import { FaBars, FaUser, FaBell, FaStore, FaList, FaHeart, FaCog, FaSignOutAlt, FaShoppingCart } from 'react-icons/fa';
 
 const CATEGORY_SUGGESTIONS = Array.from(
   new Set(initialItems.map(item => item.category))
@@ -139,158 +142,7 @@ function MyWishlistPage() {
 function SettingsPage() {
   return <div className="sidebar-landing-page">Settings (Account preferences)</div>;
 }
-function CartPage() {
-  const [cartItems, setCartItems] = useState([
-    {
-      id: 1,
-      name: "Sample Item 1",
-      price: 1500,
-      image: "https://via.placeholder.com/80x80?text=Item1",
-      quantity: 1
-    },
-    {
-      id: 2,
-      name: "Sample Item 2", 
-      price: 2300,
-      image: "https://via.placeholder.com/80x80?text=Item2",
-      quantity: 2
-    }
-  ]);
-
-  const updateQuantity = (itemId, newQuantity) => {
-    if (newQuantity <= 0) {
-      setCartItems(cartItems.filter(item => item.id !== itemId));
-    } else {
-      setCartItems(cartItems.map(item => 
-        item.id === itemId ? { ...item, quantity: newQuantity } : item
-      ));
-    }
-  };
-
-  const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
-  return (
-    <div style={{ maxWidth: 800, margin: "40px auto", padding: "0 20px" }}>
-      <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 4px 24px rgba(0,0,0,0.05)", padding: 32 }}>
-        <h2 style={{ fontWeight: 800, fontSize: 28, marginBottom: 24, color: "#232F3E" }}>Your Cart</h2>
-        
-        {cartItems.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "40px 20px" }}>
-            <div style={{ fontSize: "4rem", marginBottom: 16 }}>🛒</div>
-            <h3 style={{ color: "#232F3E", marginBottom: 8 }}>Your cart is empty</h3>
-            <p style={{ color: "#666", marginBottom: 24 }}>Add some items to get started!</p>
-            <button 
-              className="button premium"
-              onClick={() => window.location.href = '/browse'}
-            >
-              Browse Items
-            </button>
-          </div>
-        ) : (
-          <>
-            <div style={{ marginBottom: 24 }}>
-              {cartItems.map(item => (
-                <div key={item.id} style={{ 
-                  display: "flex", 
-                  alignItems: "center", 
-                  padding: "16px 0", 
-                  borderBottom: "1px solid #eee",
-                  gap: 16
-                }}>
-                  <img 
-                    src={item.image} 
-                    alt={item.name}
-                    style={{ 
-                      width: 80, 
-                      height: 80, 
-                      borderRadius: 8, 
-                      objectFit: "cover" 
-                    }}
-                  />
-                  <div style={{ flex: 1 }}>
-                    <h4 style={{ margin: "0 0 4px 0", color: "#232F3E" }}>{item.name}</h4>
-                    <p style={{ margin: 0, color: "#FFD814", fontWeight: 600 }}>₹{item.price}</p>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <button 
-                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: "50%",
-                        border: "1px solid #ddd",
-                        background: "#fff",
-                        cursor: "pointer",
-                        fontSize: "18px"
-                      }}
-                    >
-                      -
-                    </button>
-                    <span style={{ minWidth: 30, textAlign: "center", fontWeight: 600 }}>
-                      {item.quantity}
-                    </span>
-                    <button 
-                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: "50%",
-                        border: "1px solid #ddd",
-                        background: "#fff",
-                        cursor: "pointer",
-                        fontSize: "18px"
-                      }}
-                    >
-                      +
-                    </button>
-                  </div>
-                  <div style={{ textAlign: "right", minWidth: 80 }}>
-                    <p style={{ margin: 0, fontWeight: 600, color: "#232F3E" }}>
-                      ₹{item.price * item.quantity}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            <div style={{ 
-              borderTop: "2px solid #eee", 
-              paddingTop: 24, 
-              marginTop: 24 
-            }}>
-              <div style={{ 
-                display: "flex", 
-                justifyContent: "space-between", 
-                alignItems: "center",
-                marginBottom: 24
-              }}>
-                <h3 style={{ margin: 0, color: "#232F3E" }}>Total:</h3>
-                <h3 style={{ margin: 0, color: "#FFD814", fontWeight: 800 }}>₹{total}</h3>
-              </div>
-              
-              <div style={{ display: "flex", gap: 12 }}>
-                <button 
-                  className="button"
-                  style={{ flex: 1 }}
-                  onClick={() => window.location.href = '/browse'}
-                >
-                  Continue Shopping
-                </button>
-                <button 
-                  className="button premium"
-                  style={{ flex: 1 }}
-                  onClick={() => window.location.href = '/delivery'}
-                >
-                  Proceed to Checkout
-                </button>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
+// CartPage is now imported from separate file
 
 function Sidebar({ open, onClose }) {
   const { user, logout } = useAuth();
