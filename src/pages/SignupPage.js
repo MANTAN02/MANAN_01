@@ -1,12 +1,10 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../AuthContext";
-import { GoogleLogin } from '@react-oauth/google';
-import { jwtDecode } from "jwt-decode";
 import "../styles.css";
 
 export default function SignupPage() {
-  const { signup } = useAuth();
+  const { signup, googleLogin } = useAuth();
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -23,11 +21,12 @@ export default function SignupPage() {
     navigate("/browse");
   };
 
-  const handleGoogleSuccess = (credentialResponse) => {
-    if (credentialResponse.credential) {
-      const decoded = jwtDecode(credentialResponse.credential);
-      signup(decoded.email, decoded.sub, decoded.name);
+  const handleGoogleLogin = async () => {
+    try {
+      await googleLogin();
       navigate("/browse");
+    } catch (err) {
+      setError("Google signup failed. Please try again.");
     }
   };
 
@@ -35,11 +34,19 @@ export default function SignupPage() {
     <div className="login-container">
       <form className="login-form" onSubmit={handleSubmit}>
         <h2 className="login-title">Sign Up</h2>
-        <GoogleLogin
-          onSuccess={handleGoogleSuccess}
-          onError={() => setError("Google signup failed")}
-          width="100%"
-        />
+        <button 
+          type="button" 
+          onClick={handleGoogleLogin}
+          className="button google-button full-width"
+          style={{ 
+            backgroundColor: '#4285f4', 
+            color: 'white', 
+            border: 'none',
+            marginBottom: '16px'
+          }}
+        >
+          Continue with Google
+        </button>
         <div style={{ textAlign: "center", margin: "16px 0", color: "#aaa" }}>or</div>
         {error && <div className="login-error">{error}</div>}
         <input
