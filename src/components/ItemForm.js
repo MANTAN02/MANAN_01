@@ -8,7 +8,6 @@ function ItemForm({ onSubmit }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
-  const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [error, setError] = useState("");
   const fileInput = useRef();
@@ -16,7 +15,6 @@ function ItemForm({ onSubmit }) {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
@@ -64,7 +62,6 @@ function ItemForm({ onSubmit }) {
     setName("");
     setDescription("");
     setPrice("");
-    setImageFile(null);
     setImagePreview(null);
   };
 

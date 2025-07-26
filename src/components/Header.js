@@ -49,52 +49,7 @@ export default function Header({ searchValue, onSearchChange }) {
     }
   }, [searchValue]);
 
-  function handleInputChange(e) {
-    onSearchChange(e.target.value);
-  }
-
-  function handleSuggestionClick(suggestion) {
-    onSearchChange(suggestion);
-    setShowSuggestions(false);
-    navigate('/browse', { state: { searchCategory: suggestion } });
-  }
-
-  function handleInputKeyDown(e) {
-    if (!showSuggestions) return;
-    if (e.key === "ArrowDown") {
-      setHighlightedIndex(i => Math.min(i + 1, suggestions.length - 1));
-    } else if (e.key === "ArrowUp") {
-      setHighlightedIndex(i => Math.max(i - 1, 0));
-    } else if (e.key === "Enter" && highlightedIndex >= 0) {
-      onSearchChange(suggestions[highlightedIndex]);
-      setShowSuggestions(false);
-      navigate('/browse', { state: { searchCategory: suggestions[highlightedIndex] } });
-    } else if (e.key === "Escape") {
-      setShowSuggestions(false);
-    }
-  }
-
-  function highlightMatch(text, query) {
-    if (!query) return text;
-    const idx = text.toLowerCase().indexOf(query.toLowerCase());
-    if (idx === -1) return text;
-    return <>{text.slice(0, idx)}<span className="highlight-match-bold">{text.slice(idx, idx + query.length)}</span>{text.slice(idx + query.length)}</>;
-  }
-
-  function renderSuggestionIcon(icon) {
-    if (!icon || icon === "search") {
-      return <span className="suggestion-icon search"><svg width="18" height="18" viewBox="0 0 20 20"><circle cx="9" cy="9" r="7" stroke="#888" strokeWidth="2" fill="none"/><line x1="14.5" y1="14.5" x2="19" y2="19" stroke="#888" strokeWidth="2" strokeLinecap="round"/></svg></span>;
-    }
-    return <img src={icon} alt="" className="suggestion-icon product" />;
-  }
-
-  function handleSearchIconClick() {
-    // Use the search value as a category if it matches
-    const category = CATEGORY_SUGGESTIONS.find(cat =>
-      cat.toLowerCase() === searchValue.toLowerCase()
-    );
-    navigate('/browse', { state: { searchCategory: category || searchValue } });
-  }
+  // Removed unused functions to fix linting warnings
 
   return (
     <header className="main-header">

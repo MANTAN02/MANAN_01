@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../AuthContext';
+// Removed unused import
 import { useCart } from '../components/CartContext';
 import Button from '../components/Button';
 import { FaArrowLeft, FaHeart, FaShoppingCart, FaStar } from 'react-icons/fa';
@@ -10,7 +10,6 @@ import { doc, getDoc } from 'firebase/firestore';
 function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { addToCart } = useCart();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);

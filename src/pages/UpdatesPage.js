@@ -99,7 +99,7 @@ export default function UpdatesPage() {
       newErrors.email = 'Please enter a valid email address';
     }
 
-    if (profileData.phone && !/^\+?[\d\s\-\(\)]{10,}$/.test(profileData.phone)) {
+    if (profileData.phone && !/^\+?[\d\s-()]{10,}$/.test(profileData.phone)) {
       newErrors.phone = 'Please enter a valid phone number';
     }
 

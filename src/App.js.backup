@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import ListItemPage from "./pages/ListItemPage";
 import BrowsePage from "./pages/BrowsePage";
 import DeliveryPage from "./pages/DeliveryPage";
@@ -122,6 +122,29 @@ function CenteredSearchBar({ searchValue, onSearchChange }) {
 }
 
 
+function OffersPage() {
+  return <div className="sidebar-landing-page">Your Offers and Transactions</div>;
+}
+function MyProfilePage() {
+  return <div className="sidebar-landing-page">My Profile Page (View/Edit your info)</div>;
+}
+function NotificationsPage() {
+  return <div className="sidebar-landing-page">Notifications Page (All your alerts)</div>;
+}
+function ShopPagesPage() {
+  return <div className="sidebar-landing-page">Shop Pages (Browse by shop or category)</div>;
+}
+function AllPagesPage() {
+  return <div className="sidebar-landing-page">All Pages (Site map or feature list)</div>;
+}
+function MyWishlistPage() {
+  return <div className="sidebar-landing-page">My Wishlist (Your saved items)</div>;
+}
+function SettingsPage() {
+  return <div className="sidebar-landing-page">Settings (Account preferences)</div>;
+}
+// CartPage is now imported from separate file
+
 function Sidebar({ open, onClose }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -175,33 +198,14 @@ function ProtectedRoute({ children }) {
 
 
 
-function MyProfilePage() {
-  return <div className="sidebar-landing-page">My Profile Page (View/Edit your info)</div>;
-}
-
-function NotificationsPage() {
-  return <div className="sidebar-landing-page">Notifications Page (All your alerts)</div>;
-}
-
-function ShopPagesPage() {
-  return <div className="sidebar-landing-page">Shop Pages (Browse by shop or category)</div>;
-}
-
-function AllPagesPage() {
-  return <div className="sidebar-landing-page">All Pages (Site map or feature list)</div>;
-}
-
-function MyWishlistPage() {
-  return <div className="sidebar-landing-page">My Wishlist (Your saved items)</div>;
-}
-
-function SettingsPage() {
-  return <div className="sidebar-landing-page">Settings (Account preferences)</div>;
-}
-
 function MyListingsPage() {
   // Placeholder: show only user's items
   return <div className="sidebar-landing-page">My Listings (Your posted ads will appear here)</div>;
+}
+function ItemDetailsPage() {
+  const { itemId } = useParams();
+  // Placeholder: show details for a single item
+  return <div className="sidebar-landing-page">Item Details for ID: {itemId}</div>;
 }
 
 function App() {
@@ -299,4 +303,70 @@ function App() {
     );
   }
 
-export default App;
+export default function App() {
+  const [userItems, setUserItems] = useState([]);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [exchangeOffer, setExchangeOffer] = useState(null);
+  const [search, setSearch] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // These handlers can be passed as props
+  const handleListItem = (item) => {
+    const newItem = { ...item, owner: 'me' };
+    setUserItems([...userItems, newItem]);
+  };
+
+  const handlePurchase = (item) => {
+    setSelectedItem(item);
+  };
+
+  const handleOfferExchange = (item) => {
+    setSelectedItem(item);
+  };
+
+  const handleConfirmExchange = (offer) => {
+    setExchangeOffer(offer);
+  };
+
+  const handleAcceptOffer = () => {
+    alert("Exchange accepted! Proceeding to delivery.");
+    setSelectedItem(exchangeOffer.theirItem);
+  };
+
+  const handleConfirmDelivery = () => {
+    alert("Delivery confirmed! Thank you for using SWAPIN.");
+    setSelectedItem(null);
+    setExchangeOffer(null);
+  };
+
+  return (
+    <AuthProvider>
+      <CartProvider>
+        <Router>
+          <button className="hamburger-btn" onClick={() => setSidebarOpen(true)}>
+            <span className="hamburger-circle">
+              <FaBars size={28} />
+            </span>
+          </button>
+          <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          <Header searchValue={search} onSearchChange={setSearch} />
+          <CenteredSearchBar searchValue={search} onSearchChange={setSearch} />
+          <div className="App">
+            <AppRoutes
+              userItems={userItems}
+              handleListItem={handleListItem}
+              handlePurchase={handlePurchase}
+              handleOfferExchange={handleOfferExchange}
+              handleConfirmExchange={handleConfirmExchange}
+              handleAcceptOffer={handleAcceptOffer}
+              handleConfirmDelivery={handleConfirmDelivery}
+              selectedItem={selectedItem}
+              exchangeOffer={exchangeOffer}
+              search={search}
+            />
+          </div>
+        </Router>
+      </CartProvider>
+    </AuthProvider>
+  );
+}

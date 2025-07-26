@@ -95,7 +95,7 @@ export default function ExchangeOfferPage({ offer, onAccept, onDecline }) {
     );
   }
 
-  const { yourItem, theirItem, additionalCash = 0, message, exchangeType, netAmount, timestamp } = offer;
+  const { yourItem, theirItem, additionalCash = 0, message, netAmount, timestamp } = offer;
 
   return (
     <>

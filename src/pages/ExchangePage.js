@@ -7,7 +7,7 @@ import "../styles.css";
 
 export default function ExchangePage(props) {
   const navigate = useNavigate();
-  const { yourItems, item, onBack, onConfirm } = props;
+  const { yourItems, item, onConfirm } = props;
   const yourItem = yourItems && yourItems.length > 0 ? yourItems[0] : null;
   const theirItem = item;
 
