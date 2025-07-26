@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Button from "./Button";
 
 function SwapSymbol() {
@@ -16,6 +17,7 @@ function SwapSymbol() {
 }
 
 export default function ItemCard({ item, isOwn, onAddToCart, onOfferExchange, onOfferFullPrice, onOfferBoth }) {
+  const navigate = useNavigate();
   const [liked, setLiked] = useState(false);
   const badges = item.badges || [];
   const [reviews, setReviews] = useState(item.reviews || []);
@@ -39,6 +41,34 @@ export default function ItemCard({ item, isOwn, onAddToCart, onOfferExchange, on
     setReviewRating(5);
     setShowReviewForm(false);
   }
+
+  const handleAddToCart = () => {
+    if (onAddToCart) {
+      onAddToCart(item);
+      navigate('/delivery');
+    }
+  };
+
+  const handleOfferExchange = () => {
+    if (onOfferExchange) {
+      onOfferExchange(item);
+      navigate('/exchange');
+    }
+  };
+
+  const handleOfferFullPrice = () => {
+    if (onOfferFullPrice) {
+      onOfferFullPrice(item);
+      navigate('/delivery');
+    }
+  };
+
+  const handleOfferBoth = () => {
+    if (onOfferBoth) {
+      onOfferBoth(item);
+      navigate('/exchange');
+    }
+  };
 
   return (
     <div className="card item-card">
@@ -75,10 +105,10 @@ export default function ItemCard({ item, isOwn, onAddToCart, onOfferExchange, on
         <div className="actions">
           {!isOwn && (
             <>
-              {onAddToCart && <Button onClick={() => onAddToCart(item)}>Add to Cart</Button>}
-              {onOfferExchange && <Button variant="secondary" onClick={() => onOfferExchange(item)}><SwapSymbol />Offer Exchange</Button>}
-              {onOfferFullPrice && <Button onClick={() => onOfferFullPrice(item)}>Offer Full Price</Button>}
-              {onOfferBoth && <Button onClick={() => onOfferBoth(item)}>Offer Both</Button>}
+              {onAddToCart && <Button onClick={handleAddToCart}>Add to Cart</Button>}
+              {onOfferExchange && <Button variant="secondary" onClick={handleOfferExchange}><SwapSymbol />Offer Exchange</Button>}
+              {onOfferFullPrice && <Button onClick={handleOfferFullPrice}>Offer Full Price</Button>}
+              {onOfferBoth && <Button onClick={handleOfferBoth}>Offer Both</Button>}
             </>
           )}
           {isOwn && <span className="item-own">Your item</span>}

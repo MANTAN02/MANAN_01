@@ -43,17 +43,7 @@ export default function BrowsePage({ userItems, onAddToCart, onOfferExchange, on
       <section className="welcome-section">
         <div className="welcome-content">
           <h1 className="welcome-title">Welcome to SWAPIN</h1>
-          <p className="welcome-desc">Barter, swap, or sell your items with trust. Enjoy modern, secure, and smart product matching with escrow protection and delivery tracking.</p>
-          <div className="welcome-stats">
-            <div className="stat-item">
-              <span className="stat-number">{items.length}</span>
-              <span className="stat-label">Items Available</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-number">{featuredItems.length}</span>
-              <span className="stat-label">Featured</span>
-            </div>
-          </div>
+          <p className="welcome-desc">Barter, swap, or sell your items with trust. Enjoy modern, secure, and smart product matching with delivery tracking.</p>
         </div>
       </section>
 

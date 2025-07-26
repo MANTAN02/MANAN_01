@@ -10,6 +10,7 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      console.log("Auth state changed:", firebaseUser);
       setUser(firebaseUser);
       setLoading(false);
     });
@@ -17,24 +18,52 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async (email, password) => {
-    await signInWithEmailAndPassword(auth, email, password);
+    try {
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      console.log("Email login successful:", result.user);
+      return result;
+    } catch (error) {
+      console.error("Email login error:", error);
+      throw error;
+    }
   };
 
   const googleLogin = async () => {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      console.log("Google login successful:", result.user);
+      return result;
+    } catch (error) {
+      console.error("Google login error:", error);
+      throw error;
+    }
   };
 
   const signup = async (email, password, displayName) => {
-    const cred = await createUserWithEmailAndPassword(auth, email, password);
-    if (displayName) {
-      await updateProfile(cred.user, { displayName });
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      if (displayName) {
+        await updateProfile(cred.user, { displayName });
+        console.log("Profile updated with display name:", displayName);
+      }
+      console.log("Signup successful:", cred.user);
+      return cred;
+    } catch (error) {
+      console.error("Signup error:", error);
+      throw error;
     }
   };
 
   const logout = async () => {
-    await signOut(auth);
-    setUser(null);
+    try {
+      await signOut(auth);
+      setUser(null);
+      console.log("Logout successful");
+    } catch (error) {
+      console.error("Logout error:", error);
+      throw error;
+    }
   };
 
   return (

@@ -71,6 +71,14 @@ export default function LoginPage() {
           Don&apos;t have an account? <Link to="/signup">Sign up</Link>
         </div>
       </form>
+      <button
+        type="button"
+        className="button full-width"
+        style={{ marginTop: 12, background: '#aaa', color: 'white' }}
+        onClick={() => navigate('/browse')}
+      >
+        Skip for now
+      </button>
     </div>
   );
 } 

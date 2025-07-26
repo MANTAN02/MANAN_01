@@ -1,10 +1,24 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import ItemForm from "../components/ItemForm";
 import Button from "../components/Button";
 import "../styles.css";
 
 export default function ListItemPage(props) {
+  const navigate = useNavigate();
+
+  const handleSkip = () => {
+    navigate('/browse');
+  };
+
+  const handleSubmit = (item) => {
+    if (props.onSubmit) {
+      props.onSubmit(item);
+    }
+    navigate('/browse');
+  };
+
   // Home/landing hero section
   return (
     <>
@@ -20,9 +34,9 @@ export default function ListItemPage(props) {
         </div>
         <div className="home-hero-content">
           <h1 className="home-hero-title">Welcome to SWAPIN</h1>
-          <p className="home-hero-desc">Barter, swap, or sell your items with trust. Enjoy modern, secure, and smart product matching with escrow protection and delivery tracking.</p>
+          <p className="home-hero-desc">Barter, swap, or sell your items with trust. Enjoy modern, secure, and smart product matching with delivery tracking.</p>
           <div className="home-hero-actions">
-            <button className="button premium" onClick={props.onSkip}>Browse Items</button>
+            <button className="button premium" onClick={handleSkip}>Browse Items</button>
             <button className="button" onClick={() => window.scrollTo({top: 600, behavior: 'smooth'})}>List Your Item</button>
           </div>
         </div>
@@ -30,8 +44,8 @@ export default function ListItemPage(props) {
       <div style={{ maxWidth: 500, margin: "40px auto 0 auto", background: "#fff", borderRadius: 16, boxShadow: "0 4px 24px #232F3E11", padding: 32 }}>
         <h2 style={{ fontWeight: 800, fontSize: 28, marginBottom: 8, color: "#232F3E" }}>List Your Item to Sell or Swap</h2>
         <p style={{ color: "#555", marginBottom: 24 }}>Enter details of your item. You can skip and browse items if you want.</p>
-        <ItemForm onSubmit={props.onSubmit} />
-        <Button variant="secondary" fullWidth onClick={props.onSkip} style={{ marginTop: 8 }}>Skip for now</Button>
+        <ItemForm onSubmit={handleSubmit} />
+        <Button variant="secondary" fullWidth onClick={handleSkip} style={{ marginTop: 8 }}>Skip for now</Button>
       </div>
     </>
   );

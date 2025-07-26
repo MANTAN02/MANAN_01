@@ -116,11 +116,11 @@ export default function Header({ searchValue, onSearchChange }) {
             <div className="user-profile" ref={menuRef}>
               <div className="user-profile-btn" onClick={() => setMenuOpen(m => !m)}>
                 <img
-                  src={user.avatar}
+                  src={user.photoURL || user.avatar || "https://randomuser.me/api/portraits/lego/1.jpg"}
                   alt="User Avatar"
                   className="user-avatar"
                 />
-                <span className="user-name">{user.name}</span>
+                <span className="user-name">{user.displayName || user.name || user.email || 'NEW USER'}</span>
                 <span style={{ marginLeft: 4, fontSize: 18 }}>▼</span>
               </div>
               {menuOpen && (

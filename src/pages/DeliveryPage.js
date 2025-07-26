@@ -1,8 +1,10 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import DeliveryForm from "../components/DeliveryForm";
 import Button from "../components/Button";
 
 export default function DeliveryPage(props) {
+  const navigate = useNavigate();
   const [confirmed, setConfirmed] = useState(false);
   const [deliveryData, setDeliveryData] = useState(null);
 
@@ -10,8 +12,15 @@ export default function DeliveryPage(props) {
     setDeliveryData(data);
     setConfirmed(true);
     setTimeout(() => {
-      props.onConfirm();
+      if (props.onConfirm) {
+        props.onConfirm();
+      }
+      navigate('/browse');
     }, 1800);
+  };
+
+  const handleBack = () => {
+    navigate('/browse');
   };
 
   return (
@@ -35,7 +44,7 @@ export default function DeliveryPage(props) {
             Thank you for shopping with SWAPIN.
           </div>
         )}
-        <Button variant="secondary" fullWidth onClick={props.onBack} style={{ marginTop: 8 }}>Back</Button>
+        <Button variant="secondary" fullWidth onClick={handleBack} style={{ marginTop: 8 }}>Back</Button>
       </div>
     </>
   );

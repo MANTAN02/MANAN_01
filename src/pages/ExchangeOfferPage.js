@@ -1,9 +1,26 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import Button from "../components/Button";
 import "../styles.css";
 
 export default function ExchangeOfferPage(props) {
+  const navigate = useNavigate();
+
+  const handleAccept = () => {
+    if (props.onAccept) {
+      props.onAccept();
+    }
+    navigate('/delivery');
+  };
+
+  const handleDecline = () => {
+    if (props.onDecline) {
+      props.onDecline();
+    }
+    navigate('/browse');
+  };
+
   if (!props.offer) {
     return (
       <>
@@ -11,6 +28,7 @@ export default function ExchangeOfferPage(props) {
         <div style={{ maxWidth: 500, margin: "40px auto 0 auto", background: "#fff", borderRadius: 16, boxShadow: "0 4px 24px #232F3E11", padding: 32, textAlign: "center" }}>
           <h2 style={{ fontWeight: 800, fontSize: 28, color: "#232F3E" }}>No Exchange Offer</h2>
           <p style={{ color: "#888" }}>No exchange offer to review at this time.</p>
+          <Button onClick={() => navigate('/browse')}>Back to Browse</Button>
         </div>
       </>
     );
@@ -33,8 +51,8 @@ export default function ExchangeOfferPage(props) {
           Net Amount: {netAmount === 0 ? "Even Exchange" : netAmount > 0 ? `You pay ₹${netAmount}` : `You receive ₹${-netAmount}`}
         </div>
         <div className="actions" style={{ display: "flex", gap: 12, marginTop: 24 }}>
-          <Button fullWidth onClick={props.onAccept}>Accept</Button>
-          <Button variant="secondary" fullWidth onClick={props.onDecline}>Decline</Button>
+          <Button fullWidth onClick={handleAccept}>Accept</Button>
+          <Button variant="secondary" fullWidth onClick={handleDecline}>Decline</Button>
         </div>
       </div>
     </>

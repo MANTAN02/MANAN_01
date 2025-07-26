@@ -75,6 +75,14 @@ export default function SignupPage() {
           Already have an account? <Link to="/login">Login</Link>
         </div>
       </form>
+      <button
+        type="button"
+        className="button full-width"
+        style={{ marginTop: 12, background: '#aaa', color: 'white' }}
+        onClick={() => navigate('/browse')}
+      >
+        Skip for now
+      </button>
     </div>
   );
 } 

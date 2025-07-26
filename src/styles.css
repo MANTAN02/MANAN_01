@@ -1142,7 +1142,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  margin-top: 40px;
+  margin-top: 20px;
   margin-bottom: 32px;
   min-height: unset;
 }
@@ -1170,7 +1170,7 @@ body {
   border: none;
   outline: none;
   background: rgba(255,255,255,0.18);
-  color: #fff;
+  color: #000;
   font-weight: 600;
   box-shadow: 0 2px 8px #a259f722;
   transition: background 0.2s, box-shadow 0.2s;
@@ -1184,6 +1184,7 @@ body {
 .centered-search-bar input:focus {
   background: #fff;
   box-shadow: 0 4px 16px #a259f744;
+  color: #000;
 }
 
 .centered-search-bar .search-icon {
@@ -1347,19 +1348,27 @@ body {
   margin-bottom: 12px;
 }
 .sidebar-profile-name {
-  font-size: 1.3rem;
   font-weight: 700;
-  color: #fff;
+  font-size: 1.1rem;
+  color: #232f3e;
   margin-bottom: 4px;
 }
-.sidebar-profile-balance {
-  background: rgba(255,255,255,0.18);
-  color: #fff;
-  font-size: 1rem;
-  padding: 4px 18px;
-  border-radius: 16px;
-  font-weight: 600;
+
+.sidebar-profile-email {
+  font-size: 0.9rem;
+  color: #666;
   margin-bottom: 8px;
+  word-break: break-all;
+}
+
+.sidebar-profile-balance {
+  font-weight: 600;
+  color: #22a06b;
+  font-size: 0.95rem;
+  background: #f0f9f4;
+  padding: 6px 12px;
+  border-radius: 12px;
+  display: inline-block;
 }
 .sidebar-menu {
   list-style: none;
