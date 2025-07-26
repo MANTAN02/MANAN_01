@@ -102,7 +102,11 @@ export default function ItemCard({ item, isOwn, onAddToCart, onOfferExchange, on
   };
 
   return (
-    <div className="card item-card">
+    <div 
+      className="card item-card" 
+      style={{ cursor: 'pointer' }}
+      onClick={() => navigate(`/product/${item.id}`)}
+    >
       <div className="item-badges">
         {badges.map(badge => (
           <span key={badge} className={`item-badge ${badge}`}>{badge}</span>

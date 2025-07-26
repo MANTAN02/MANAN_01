@@ -11,6 +11,7 @@ import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import CartPage from "./pages/CartPage";
 import UpdatesPage from "./pages/UpdatesPage";
+import ProductDetailPage from "./pages/ProductDetailPage";
 import Header from "./components/Header";
 import { AuthProvider, useAuth } from "./AuthContext";
 import { CartProvider } from "./components/CartContext";
@@ -171,13 +172,14 @@ function Sidebar({ open, onClose }) {
           <div className="sidebar-profile-balance">Current Balance $99</div>
         </div>
         <ul className="sidebar-menu">
+          <li onClick={() => handleNav('/cart')}><FaShoppingCart className="sidebar-icon" /> My Cart</li>
           <li onClick={() => handleNav('/my-profile')}><FaUser className="sidebar-icon" /> My Profile</li>
+          <li onClick={() => handleNav('/updates')}><FaCog className="sidebar-icon" /> Account Settings</li>
           <li onClick={() => handleNav('/notifications')}><FaBell className="sidebar-icon" /> Notifications <span className="sidebar-badge">3</span></li>
           <li onClick={() => handleNav('/shop-pages')}><FaStore className="sidebar-icon" /> Shop Pages</li>
           <li onClick={() => handleNav('/all-pages')}><FaList className="sidebar-icon" /> All Pages</li>
           <li onClick={() => handleNav('/my-wishlist')}><FaHeart className="sidebar-icon" /> My Wishlist</li>
           <li onClick={() => handleNav('/my-listings')}><FaList className="sidebar-icon" /> My Listings</li>
-          <li onClick={() => handleNav('/settings')}><FaCog className="sidebar-icon" /> Settings</li>
           <li onClick={handleSignOut}><FaSignOutAlt className="sidebar-icon" /> Sign Out</li>
         </ul>
       </div>
@@ -272,30 +274,99 @@ function App() {
   );
 }
 
-function AppRoutes({ userItems, handleListItem, handlePurchase, handleOfferExchange, handleConfirmExchange, handleAcceptOffer, handleConfirmDelivery, selectedItem, exchangeOffer, search }) {
-  const location = useLocation();
+  function AppRoutes({ userItems, handleListItem, handlePurchase, handleOfferExchange, handleConfirmExchange, handleAcceptOffer, handleConfirmDelivery, selectedItem, exchangeOffer, search }) {
+    const location = useLocation();
+    const navigate = useNavigate();
+    
+    return (
+      <Routes>
+        <Route path="/" element={<BrowsePage userItems={userItems} onAddToCart={handlePurchase} onOfferExchange={handleOfferExchange} onOfferFullPrice={handlePurchase} search={search} searchCategory={location.state?.searchCategory} />} />
+        <Route path="/browse" element={<BrowsePage userItems={userItems} onAddToCart={handlePurchase} onOfferExchange={handleOfferExchange} onOfferFullPrice={handlePurchase} search={search} searchCategory={location.state?.searchCategory} />} />
+        <Route path="/list" element={<ListItemPage onSubmit={handleListItem} />} />
+        <Route path="/offers" element={<ProtectedRoute><ExchangeOfferPage offer={exchangeOffer} onAccept={handleAcceptOffer} onDecline={() => {}} /></ProtectedRoute>} />
+        <Route path="/my-profile" element={<MyProfilePage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
+        <Route path="/shop-pages" element={<ShopPagesPage />} />
+        <Route path="/all-pages" element={<AllPagesPage />} />
+        <Route path="/my-wishlist" element={<MyWishlistPage />} />
+        <Route path="/my-listings" element={<MyListingsPage />} />
+        <Route path="/product/:id" element={<ProductDetailPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/cart" element={<CartPage />} />
+        <Route path="/updates" element={<ProtectedRoute><UpdatesPage /></ProtectedRoute>} />
+        <Route path="/profile" element={<UserProfilePage />} />
+        <Route path="/delivery" element={<ProtectedRoute><DeliveryPage item={selectedItem} onBack={() => navigate('/cart')} onConfirm={handleConfirmDelivery} /></ProtectedRoute>} />
+        <Route path="/exchange" element={<ProtectedRoute><ExchangePage item={selectedItem} yourItems={userItems} onBack={() => navigate('/browse')} onConfirm={handleConfirmExchange} /></ProtectedRoute>} />
+        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/login" element={<LoginPage />} />
+      </Routes>
+    );
+  }
+
+export default function App() {
+  const [userItems, setUserItems] = useState([]);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [exchangeOffer, setExchangeOffer] = useState(null);
+  const [search, setSearch] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // These handlers can be passed as props
+  const handleListItem = (item) => {
+    const newItem = { ...item, owner: 'me' };
+    setUserItems([...userItems, newItem]);
+  };
+
+  const handlePurchase = (item) => {
+    setSelectedItem(item);
+  };
+
+  const handleOfferExchange = (item) => {
+    setSelectedItem(item);
+  };
+
+  const handleConfirmExchange = (offer) => {
+    setExchangeOffer(offer);
+  };
+
+  const handleAcceptOffer = () => {
+    alert("Exchange accepted! Proceeding to delivery.");
+    setSelectedItem(exchangeOffer.theirItem);
+  };
+
+  const handleConfirmDelivery = () => {
+    alert("Delivery confirmed! Thank you for using SWAPIN.");
+    setSelectedItem(null);
+    setExchangeOffer(null);
+  };
+
   return (
-    <Routes>
-      <Route path="/" element={<BrowsePage userItems={userItems} onAddToCart={handlePurchase} onOfferExchange={handleOfferExchange} onOfferFullPrice={handlePurchase} search={search} searchCategory={location.state?.searchCategory} />} />
-      <Route path="/browse" element={<BrowsePage userItems={userItems} onAddToCart={handlePurchase} onOfferExchange={handleOfferExchange} onOfferFullPrice={handlePurchase} search={search} searchCategory={location.state?.searchCategory} />} />
-      <Route path="/list" element={<ListItemPage onSubmit={handleListItem} />} />
-      <Route path="/offers" element={<ProtectedRoute><ExchangeOfferPage offer={exchangeOffer} onAccept={handleAcceptOffer} onDecline={() => {}} /></ProtectedRoute>} />
-      <Route path="/my-profile" element={<MyProfilePage />} />
-      <Route path="/notifications" element={<NotificationsPage />} />
-      <Route path="/shop-pages" element={<ShopPagesPage />} />
-      <Route path="/all-pages" element={<AllPagesPage />} />
-      <Route path="/my-wishlist" element={<MyWishlistPage />} />
-      <Route path="/my-listings" element={<MyListingsPage />} />
-      <Route path="/item/:itemId" element={<ItemDetailsPage />} />
-      <Route path="/settings" element={<SettingsPage />} />
-      <Route path="/cart" element={<CartPage />} />
-      <Route path="/profile" element={<UserProfilePage />} />
-      <Route path="/delivery" element={<ProtectedRoute><DeliveryPage item={selectedItem} onBack={() => {}} onConfirm={handleConfirmDelivery} /></ProtectedRoute>} />
-      <Route path="/exchange" element={<ProtectedRoute><ExchangePage item={selectedItem} yourItems={userItems} onBack={() => {}} onConfirm={handleConfirmExchange} /></ProtectedRoute>} />
-      <Route path="/signup" element={<SignupPage />} />
-      <Route path="/login" element={<LoginPage />} />
-    </Routes>
+    <AuthProvider>
+      <CartProvider>
+        <Router>
+          <button className="hamburger-btn" onClick={() => setSidebarOpen(true)}>
+            <span className="hamburger-circle">
+              <FaBars size={28} />
+            </span>
+          </button>
+          <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          <Header searchValue={search} onSearchChange={setSearch} />
+          <CenteredSearchBar searchValue={search} onSearchChange={setSearch} />
+          <div className="App">
+            <AppRoutes
+              userItems={userItems}
+              handleListItem={handleListItem}
+              handlePurchase={handlePurchase}
+              handleOfferExchange={handleOfferExchange}
+              handleConfirmExchange={handleConfirmExchange}
+              handleAcceptOffer={handleAcceptOffer}
+              handleConfirmDelivery={handleConfirmDelivery}
+              selectedItem={selectedItem}
+              exchangeOffer={exchangeOffer}
+              search={search}
+            />
+          </div>
+        </Router>
+      </CartProvider>
+    </AuthProvider>
   );
 }
-
-export default App;
