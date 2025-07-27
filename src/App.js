@@ -1,96 +1,96 @@
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './AuthContext';
+import { CartProvider } from './components/CartContext';
+import EnhancedHeader from './components/EnhancedHeader';
+import EnhancedItemCard from './components/EnhancedItemCard';
+import BrowsePage from './pages/BrowsePage';
+import CartPage from './pages/CartPage';
+import DeliveryPage from './pages/DeliveryPage';
+import ExchangePage from './pages/ExchangePage';
+import ExchangeOfferPage from './pages/ExchangeOfferPage';
+import ListItemPage from './pages/ListItemPage';
+import LoginPage from './pages/LoginPage';
+import SignupPage from './pages/SignupPage';
+import ProductDetailPage from './pages/ProductDetailPage';
+import UserProfilePage from './pages/UserProfilePage';
+import UpdatesPage from './pages/UpdatesPage';
+import './index.css';
 
-import React, { useState, useRef, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
-import ListItemPage from "./pages/ListItemPage";
-import BrowsePage from "./pages/BrowsePage";
-import DeliveryPage from "./pages/DeliveryPage";
-import ExchangePage from "./pages/ExchangePage";
-import ExchangeOfferPage from "./pages/ExchangeOfferPage";
-import UserProfilePage from "./pages/UserProfilePage";
-import LoginPage from "./pages/LoginPage";
-import SignupPage from "./pages/SignupPage";
-import CartPage from "./pages/CartPage";
-import UpdatesPage from "./pages/UpdatesPage";
-import ProductDetailPage from "./pages/ProductDetailPage";
-import Header from "./components/Header";
-import { AuthProvider, useAuth } from "./AuthContext";
-import { CartProvider } from "./components/CartContext";
-import "./styles.css";
-import { initialItems } from './pages/BrowsePage';
-import { FaBars, FaUser, FaBell, FaStore, FaList, FaHeart, FaCog, FaSignOutAlt, FaShoppingCart } from 'react-icons/fa';
+const App = () => {
+  const [search, setSearch] = useState("");
+  const [items, setItems] = useState([]);
 
-const CATEGORY_SUGGESTIONS = Array.from(
-  new Set(initialItems.map(item => item.category))
-).sort();
-
-function CenteredSearchBar({ searchValue, onSearchChange }) {
-  const [suggestions, setSuggestions] = useState([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const searchRef = useRef();
-  const navigate = useNavigate();
-
+  // Mock data for demonstration
   useEffect(() => {
-    if (searchValue && searchValue.length > 0) {
-      const filtered = CATEGORY_SUGGESTIONS.filter(cat =>
-        cat.toLowerCase().includes(searchValue.toLowerCase())
-      );
-      setSuggestions(filtered);
-      setShowSuggestions(filtered.length > 0);
-      setHighlightedIndex(-1);
-    } else {
-      setSuggestions([]);
-      setShowSuggestions(false);
-      setHighlightedIndex(-1);
-    }
-  }, [searchValue]);
+    const mockItems = [
+      {
+        id: 1,
+        title: "Vintage Camera",
+        price: 299,
+        category: "Electronics",
+        description: "Beautiful vintage camera in excellent condition",
+        image: "https://via.placeholder.com/300x200",
+        location: "New York",
+        rating: 4.5,
+        reviewCount: 12,
+        isNew: true,
+        postedAt: "2 days ago"
+      },
+      {
+        id: 2,
+        title: "Designer Watch",
+        price: 599,
+        category: "Fashion",
+        description: "Luxury designer watch with original box",
+        image: "https://via.placeholder.com/300x200",
+        location: "Los Angeles",
+        rating: 4.8,
+        reviewCount: 25,
+        isFeatured: true,
+        postedAt: "1 week ago"
+      },
+      {
+        id: 3,
+        title: "Gaming Laptop",
+        price: 899,
+        category: "Electronics",
+        description: "High-performance gaming laptop with warranty",
+        image: "https://via.placeholder.com/300x200",
+        location: "Chicago",
+        rating: 4.2,
+        reviewCount: 8,
+        postedAt: "3 days ago"
+      }
+    ];
+    setItems(mockItems);
+  }, []);
 
-  function handleInputChange(e) {
-    onSearchChange(e.target.value);
-  }
-
-  function handleSuggestionClick(suggestion) {
-    onSearchChange(suggestion);
-    setShowSuggestions(false);
-    navigate('/browse', { state: { searchCategory: suggestion } });
-  }
-
-  function handleInputKeyDown(e) {
-    if (!showSuggestions) return;
-    if (e.key === "ArrowDown") {
-      setHighlightedIndex(i => Math.min(i + 1, suggestions.length - 1));
-    } else if (e.key === "ArrowUp") {
-      setHighlightedIndex(i => Math.max(i - 1, 0));
-    } else if (e.key === "Enter" && highlightedIndex >= 0) {
-      onSearchChange(suggestions[highlightedIndex]);
-      setShowSuggestions(false);
-      navigate('/browse', { state: { searchCategory: suggestions[highlightedIndex] } });
-    } else if (e.key === "Escape") {
-      setShowSuggestions(false);
-    }
-  }
-
-  function highlightMatch(text, query) {
-    if (!query) return text;
-    const idx = text.toLowerCase().indexOf(query.toLowerCase());
-    if (idx === -1) return text;
-    return <>{text.slice(0, idx)}<span className="highlight-match-bold">{text.slice(idx, idx + query.length)}</span>{text.slice(idx + query.length)}</>;
-  }
-
-  function handleSearchIconClick() {
-    const category = CATEGORY_SUGGESTIONS.find(cat =>
-      cat.toLowerCase() === searchValue.toLowerCase()
-    );
-    navigate('/browse', { state: { searchCategory: category || searchValue } });
-  }
+  const ProtectedRoute = ({ children }) => {
+    const { user } = useAuth();
+    return user ? children : <Navigate to="/login" />;
+  };
 
   return (
-    <div className="centered-search-bar-container">
-      <div className="centered-search-bar" ref={searchRef}>
-        <input
-          type="text"
-          value={searchValue}
-          onChange={handleInputChange}
+    <AuthProvider>
+      <CartProvider>
+        <Router>
+          <div className="min-h-screen bg-gray-50">
+            <EnhancedHeader searchValue={search} onSearchChange={setSearch} />
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              <Routes>
+                <Route path="/" element={<BrowsePage items={items} search={search} />} />
+                <Route path="/browse" element={<BrowsePage items={items} search={search} />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/signup" element={<SignupPage />} />
+                <Route path="/list" element={<ProtectedRoute><ListItemPage /></ProtectedRoute>} />
+                <Route path="/cart" element={<ProtectedRoute><CartPage /></ProtectedRoute>} />
+                <Route path="/product/:id" element={<ProductDetailPage />} />
+                <Route path="/exchange/:id" element={<ProtectedRoute><ExchangePage /></ProtectedRoute>} />
+                <Route path="/delivery/:id" element={<ProtectedRoute><DeliveryPage /></ProtectedRoute>} />
+                <Route path="/profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
+                <Route path="/updates" element={<ProtectedRoute><UpdatesPage /></ProtectedRoute>} />
+                <Route path="/exchange-offers" element={<ProtectedRoute><ExchangeOfferPage /></ProtectedRoute>} />
           onFocus={() => setShowSuggestions(suggestions.length > 0)}
           onKeyDown={handleInputKeyDown}
           placeholder="Search by category..."
