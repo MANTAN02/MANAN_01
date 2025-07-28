@@ -1,12 +1,8 @@
-git add .
-git commit -m "Updated features"
-git push origin main
-
 /* Global background and font */
 body {
   margin: 0;
   font-family: 'Poppins', 'Nunito', 'Segoe UI', Arial, sans-serif;
-  background: linear-gradient(135deg, #2d2a4a 0%, #4b3fa7 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
   min-height: 100vh;
   color: #232f3e;
   position: relative;
@@ -60,7 +56,7 @@ h2, .login-title {
 /* Cards - Mobile first */
 .card, .item-card, .browse-container, .profile-container, .login-form, .featured-section {
   border-radius: 16px; /* Smaller radius for mobile */
-  box-shadow: 0 4px 16px #232f3e0a;
+  box-shadow: 0 4px 16px #1e3a8a0a;
   background: #fff;
   padding: 16px; /* Mobile padding */
   margin-bottom: 16px;
@@ -72,7 +68,7 @@ h2, .login-title {
   font-size: 0.9rem; /* Mobile font size */
   font-weight: 700;
   padding: 12px 20px; /* Mobile padding */
-  background: #232f3e;
+  background: #2563eb;
   color: #fff;
   border: none;
   box-shadow: 0 2px 8px #232f3e22;
@@ -83,24 +79,24 @@ h2, .login-title {
 }
 
 .button.premium {
-  background: linear-gradient(90deg, #ffb347 0%, #ff914d 100%);
-  color: #232f3e;
+  background: linear-gradient(90deg, #3b82f6 0%, #06b6d4 100%);
+  color: #fff;
 }
 
 .button:hover, .cart-btn:hover, .button.premium:hover {
-  background: #3a8dde;
+  background: #1e40af;
   color: #fff;
   transform: translateY(-2px) scale(1.03);
-  box-shadow: 0 4px 16px #3a8dde33;
+  box-shadow: 0 4px 16px #1e40af33;
 }
 
 /* Inputs - Mobile first */
 input, select, textarea {
   border-radius: 12px; /* Smaller radius for mobile */
-  border: 2px solid #e0e7ff;
+  border: 2px solid #dbeafe;
   padding: 12px 14px; /* Mobile padding */
   font-size: 0.9rem; /* Mobile font size */
-  background: #f7faff;
+  background: #cffafe;
   margin-bottom: 12px;
   width: 100%;
   box-sizing: border-box;
@@ -110,8 +106,8 @@ input, select, textarea {
 }
 
 input:focus, select:focus, textarea:focus {
-  border: 2px solid #ffb347;
-  box-shadow: 0 2px 8px #ffb34733;
+  border: 2px solid #3b82f6;
+  box-shadow: 0 2px 8px #3b82f633;
   outline: none;
 }
 
@@ -237,11 +233,12 @@ input:focus, select:focus, textarea:focus {
 */
 
 /* Accent colors */
-.accent-orange {
-  background: #ffb347;
+.accent-orange, .item-badge, .item-badge.premium, .item-badge.new, .item-badge.popular, .sidebar-badge {
+  background: #3b82f6 !important;
+  color: #fff !important;
 }
 .accent-navy {
-  background: #232f3e;
+  background: #1e3a8a !important;
 }
 
 /* Enhanced Mobile Styles */
@@ -559,19 +556,19 @@ input:focus, select:focus, textarea:focus {
   text-transform: uppercase;
 }
 .profile-swap-status.completed {
-  background: #e6ffed;
-  color: #1db954;
-  border: 1px solid #1db95444;
+  background: #cffafe;
+  color: #2563eb;
+  border: 1px solid #2563eb44;
 }
 .profile-swap-status.pending {
-  background: #fffbe6;
-  color: #ffb347;
-  border: 1px solid #ffb34744;
+  background: #dbeafe;
+  color: #3b82f6;
+  border: 1px solid #3b82f644;
 }
 .profile-swap-status.cancelled {
-  background: #ffe7e7;
-  color: #ff4d6d;
-  border: 1px solid #ff4d6d44;
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #1e40af44;
 }
 
 /* Fade-in animation for cards and sections */
@@ -1425,7 +1422,7 @@ body {
 
 /* Welcome Section - Mobile First */
 .welcome-section {
-  background: linear-gradient(135deg, #ffb347 0%, #ff914d 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
   padding: 40px var(--mobile-padding);
   text-align: center;
   color: #232f3e;
@@ -1534,7 +1531,7 @@ body {
 
 /* Button variants */
 .button.danger {
-  background: #ff4d6d;
+  background: #1e40af;
   color: #fff;
 }
 
@@ -1543,7 +1540,7 @@ body {
 }
 
 .button.success {
-  background: #22a06b;
+  background: #06b6d4;
   color: #fff;
 }
 
@@ -1578,10 +1575,10 @@ body {
 .exchange-form textarea {
   width: 100%;
   padding: 12px 16px;
-  border: 2px solid #e0e7ff;
+  border: 2px solid #dbeafe;
   border-radius: 12px;
   font-size: 1rem;
-  background: #f7faff;
+  background: #cffafe;
   margin-bottom: 12px;
   transition: border-color 0.2s, box-shadow 0.2s;
   box-sizing: border-box;

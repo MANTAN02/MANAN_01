@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import Button from "./Button";
+import { callBackendFunction } from '../AuthContext';
 
 export default function DeliveryForm({ onSubmit, onBack, initialData = {} }) {
   const [formData, setFormData] = useState({
@@ -17,44 +18,37 @@ export default function DeliveryForm({ onSubmit, onBack, initialData = {} }) {
 
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const validateForm = () => {
     const newErrors = {};
-
     if (!formData.fullName.trim()) {
       newErrors.fullName = "Full name is required";
     }
-
     if (!formData.email.trim()) {
       newErrors.email = "Email is required";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = "Please enter a valid email address";
     }
-
     if (!formData.phone.trim()) {
       newErrors.phone = "Phone number is required";
     } else if (!/^\+?[\d\s-()]{10,}$/.test(formData.phone)) {
       newErrors.phone = "Please enter a valid phone number";
     }
-
     if (!formData.streetAddress.trim()) {
       newErrors.streetAddress = "Street address is required";
     }
-
     if (!formData.city.trim()) {
       newErrors.city = "City is required";
     }
-
     if (!formData.state.trim()) {
       newErrors.state = "State is required";
     }
-
     if (!formData.zipCode.trim()) {
       newErrors.zipCode = "ZIP/Postal code is required";
     } else if (!/^\d{6}$/.test(formData.zipCode.replace(/\s/g, ''))) {
       newErrors.zipCode = "Please enter a valid 6-digit PIN code";
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -62,8 +56,6 @@ export default function DeliveryForm({ onSubmit, onBack, initialData = {} }) {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: "" }));
     }
@@ -71,16 +63,20 @@ export default function DeliveryForm({ onSubmit, onBack, initialData = {} }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+    setSuccess(false);
     if (!validateForm()) {
       return;
     }
-
+    setIsSubmitting(true);
+    setErrors({});
     try {
-      setIsSubmitting(true);
-      await onSubmit(formData);
+      // Save delivery location to backend
+      const saved = await callBackendFunction('saveLocation', 'POST', { ...formData });
+      setSuccess(true);
+      if (onSubmit) {
+        onSubmit(saved);
+      }
     } catch (error) {
-      console.error('Error submitting delivery form:', error);
       setErrors({ submit: 'Failed to submit delivery information. Please try again.' });
     } finally {
       setIsSubmitting(false);

@@ -1,54 +1,47 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import "../styles.css";
+import { callBackendFunction, useAuth } from '../AuthContext';
 
 export default function UserProfilePage() {
-  // Placeholder user data
-  const user = {
-    name: "John Doe",
-    email: "john.doe@email.com",
-    avatar: "https://randomuser.me/api/portraits/men/32.jpg",
-    reviews: [
-      { item: "Used Laptop", rating: 5, comment: "Great product!", date: "2024-06-01" },
-      { item: "Mountain Bike", rating: 4, comment: "Smooth ride.", date: "2024-05-28" }
-    ],
-    swaps: [
-      { item: "Bluetooth Speaker", status: "Completed", date: "2024-05-20" },
-      { item: "Mountain Bike", status: "Pending", date: "2024-06-02" }
-    ]
-  };
+  const { user: authUser } = useAuth();
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        if (authUser) {
+          const data = await callBackendFunction('getUserProfile', 'GET');
+          setProfile(data);
+        }
+      } catch (e) {
+        setError('Failed to load profile');
+      }
+      setLoading(false);
+    };
+    fetchProfile();
+  }, [authUser]);
+
+  if (loading) return <div className="profile-container"><div>Loading...</div></div>;
+  if (error) return <div className="profile-container"><div style={{color:'#c00'}}>{error}</div></div>;
+  if (!profile) return <div className="profile-container"><div>No profile found.</div></div>;
 
   return (
     <div className="profile-container">
       <div className="profile-header">
-        <img src={user.avatar} alt="Avatar" className="profile-avatar" />
+        <img src={profile.photoURL || `https://ui-avatars.com/api/?name=${profile.displayName || profile.email}`}
+             alt="Avatar" className="profile-avatar" />
         <div className="profile-info">
-          <div className="profile-name">{user.name}</div>
-          <div className="profile-email">{user.email}</div>
+          <div className="profile-name">{profile.displayName || profile.name || 'User'}</div>
+          <div className="profile-email">{profile.email}</div>
         </div>
       </div>
-      <div className="profile-section">
-        <div className="profile-section-title">Recent Reviews</div>
-        {user.reviews.length === 0 && <div className="profile-empty">No reviews yet.</div>}
-        {user.reviews.map((r, i) => (
-          <div key={i} className="profile-review">
-            <span className="profile-review-item">{r.item}</span>
-            <span className="profile-review-rating">{"★".repeat(r.rating)}</span>
-            <span className="profile-review-comment">{r.comment}</span>
-            <span className="profile-review-date">{r.date}</span>
-          </div>
-        ))}
-      </div>
-      <div className="profile-section">
-        <div className="profile-section-title">Recent Swaps</div>
-        {user.swaps.length === 0 && <div className="profile-empty">No swaps yet.</div>}
-        {user.swaps.map((s, i) => (
-          <div key={i} className="profile-swap">
-            <span className="profile-swap-item">{s.item}</span>
-            <span className={`profile-swap-status ${s.status.toLowerCase()}`}>{s.status}</span>
-            <span className="profile-swap-date">{s.date}</span>
-          </div>
-        ))}
-      </div>
+      {/* You can add reviews and swaps here if you store them in Firestore */}
+      {/* For now, just show basic profile info */}
     </div>
   );
+} 
 } 

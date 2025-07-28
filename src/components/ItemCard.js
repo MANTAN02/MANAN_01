@@ -1,6 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "./CartContext";
+import { useAuth, callBackendFunction } from '../AuthContext';
+import { useToast } from './ToastContext';
 import Button from "./Button";
 
 function SwapSymbol() {
@@ -20,6 +22,8 @@ function SwapSymbol() {
 export default function ItemCard({ item, isOwn, onAddToCart, onOfferExchange, onOfferFullPrice }) {
   const navigate = useNavigate();
   const { addToCart, cartItems } = useCart();
+  const { user } = useAuth();
+  const { showToast } = useToast();
   const [liked, setLiked] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
@@ -28,10 +32,33 @@ export default function ItemCard({ item, isOwn, onAddToCart, onOfferExchange, on
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewText, setReviewText] = useState("");
   const [reviewRating, setReviewRating] = useState(5);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
+  const [wishlistSuccess, setWishlistSuccess] = useState(false);
+  const [isWishlisted, setIsWishlisted] = useState(false);
+  const [wishlistError, setWishlistError] = useState(null);
 
   // Check if item is already in cart
   const isInCart = cartItems.some(cartItem => cartItem.id === item.id);
   const cartItem = cartItems.find(cartItem => cartItem.id === item.id);
+
+  // Check if item is in wishlist (fetch from backend on mount if logged in)
+  useEffect(() => {
+    const checkWishlist = async () => {
+      if (user && item && item.id) {
+        try {
+          setWishlistLoading(true);
+          setWishlistError(null);
+          const data = await callBackendFunction('getWishlist', 'GET');
+          setIsWishlisted(data.some(w => w.itemId === item.id));
+        } catch (e) {
+          setWishlistError('Failed to check wishlist');
+        }
+        setWishlistLoading(false);
+      }
+    };
+    checkWishlist();
+    // eslint-disable-next-line
+  }, [user, item && item.id]);
 
   function handleReviewSubmit(e) {
     e.preventDefault();
@@ -63,9 +90,11 @@ export default function ItemCard({ item, isOwn, onAddToCart, onOfferExchange, on
       if (onAddToCart) {
         onAddToCart(item);
       }
+      showToast('Added to cart!', 'success');
     } catch (error) {
       console.error('Error adding to cart:', error);
       alert('Failed to add item to cart. Please try again.');
+      showToast('Failed to add item to cart', 'error');
     } finally {
       setIsAddingToCart(false);
     }
@@ -96,6 +125,48 @@ export default function ItemCard({ item, isOwn, onAddToCart, onOfferExchange, on
     // Here you could also save to a wishlist context or API
   };
 
+  const handleAddToWishlist = async (e) => {
+    e.stopPropagation();
+    if (!user) {
+      showToast('Please log in to use wishlist.', 'error');
+      return;
+    }
+    setWishlistLoading(true);
+    setWishlistError(null);
+    try {
+      await callBackendFunction('addToWishlist', 'POST', { itemId: item.id });
+      setIsWishlisted(true);
+      setWishlistSuccess(true);
+      setTimeout(() => setWishlistSuccess(false), 1500);
+      showToast('Added to wishlist!', 'success');
+    } catch (e) {
+      setWishlistError('Failed to add to wishlist');
+      showToast('Failed to add to wishlist', 'error');
+    }
+    setWishlistLoading(false);
+  };
+
+  const handleRemoveFromWishlist = async (e) => {
+    e.stopPropagation();
+    if (!user) {
+      showToast('Please log in to use wishlist.', 'error');
+      return;
+    }
+    setWishlistLoading(true);
+    setWishlistError(null);
+    try {
+      await callBackendFunction('removeFromWishlist', 'POST', { itemId: item.id });
+      setIsWishlisted(false);
+      setWishlistSuccess(true);
+      setTimeout(() => setWishlistSuccess(false), 1500);
+      showToast('Removed from wishlist.', 'info');
+    } catch (e) {
+      setWishlistError('Failed to remove from wishlist');
+      showToast('Failed to remove from wishlist', 'error');
+    }
+    setWishlistLoading(false);
+  };
+
   return (
     <div 
       className="card item-card" 
@@ -108,10 +179,11 @@ export default function ItemCard({ item, isOwn, onAddToCart, onOfferExchange, on
         ))}
       </div>
       
+      {/* Wishlist Button */}
       <button
-        className={`heart-btn${liked ? " liked" : ""}`}
-        onClick={handleToggleWishlist}
-        aria-label={liked ? "Remove from wishlist" : "Add to wishlist"}
+        className={`heart-btn${isWishlisted ? " liked" : ""}`}
+        onClick={isWishlisted ? handleRemoveFromWishlist : handleAddToWishlist}
+        aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
         style={{
           position: "absolute",
           top: "16px",
@@ -121,7 +193,7 @@ export default function ItemCard({ item, isOwn, onAddToCart, onOfferExchange, on
           borderRadius: "50%",
           width: "36px",
           height: "36px",
-          cursor: "pointer",
+          cursor: wishlistLoading ? "wait" : "pointer",
           fontSize: "1.2rem",
           display: "flex",
           alignItems: "center",
@@ -129,10 +201,44 @@ export default function ItemCard({ item, isOwn, onAddToCart, onOfferExchange, on
           boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
           transition: "all 0.2s"
         }}
+        disabled={wishlistLoading}
       >
-        {liked ? "❤️" : "🤍"}
+        {isWishlisted ? "❤️" : "🤍"}
       </button>
-
+      {wishlistSuccess && (
+        <div style={{
+          position: "absolute",
+          top: "10%",
+          right: "10%",
+          background: "#22a06b",
+          color: "#fff",
+          padding: "4px 10px",
+          borderRadius: "8px",
+          fontSize: "0.8rem",
+          fontWeight: "600",
+          zIndex: 10,
+          animation: "fadeInUp 0.3s ease"
+        }}>
+          {isWishlisted ? "Added to wishlist!" : "Removed from wishlist!"}
+        </div>
+      )}
+      {wishlistError && (
+        <div style={{
+          position: "absolute",
+          top: "10%",
+          right: "10%",
+          background: "#c00",
+          color: "#fff",
+          padding: "4px 10px",
+          borderRadius: "8px",
+          fontSize: "0.8rem",
+          fontWeight: "600",
+          zIndex: 10
+        }}>
+          {wishlistError}
+        </div>
+      )}
+      
       {/* Success Message */}
       {showSuccessMessage && (
         <div style={{

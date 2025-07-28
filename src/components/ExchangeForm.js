@@ -1,7 +1,22 @@
 import React, { useState } from "react";
 import Button from "./Button";
+import { callBackendFunction } from '../AuthContext';
+import { useToast } from './ToastContext';
+
+function Spinner() {
+  return (
+    <div style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ animation: 'spin 1s linear infinite' }}>
+        <circle cx="12" cy="12" r="10" stroke="#3b82f6" strokeWidth="4" fill="none" opacity="0.2" />
+        <path d="M12 2a10 10 0 0 1 10 10" stroke="#3b82f6" strokeWidth="4" fill="none" strokeLinecap="round" />
+      </svg>
+      <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+}
 
 export default function ExchangeForm({ onSubmit, onBack, selectedItem, userItems = [] }) {
+  const { showToast } = useToast();
   const [formData, setFormData] = useState({
     selectedUserItem: "",
     additionalCash: 0,
@@ -11,6 +26,8 @@ export default function ExchangeForm({ onSubmit, onBack, selectedItem, userItems
 
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [backendNetAmount, setBackendNetAmount] = useState(null);
 
   const validateForm = () => {
     const newErrors = {};
@@ -38,10 +55,7 @@ export default function ExchangeForm({ onSubmit, onBack, selectedItem, userItems
   const handleChange = (e) => {
     const { name, value, type } = e.target;
     const newValue = type === "number" ? parseFloat(value) || 0 : value;
-    
     setFormData(prev => ({ ...prev, [name]: newValue }));
-    
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: "" }));
     }
@@ -49,41 +63,41 @@ export default function ExchangeForm({ onSubmit, onBack, selectedItem, userItems
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+    setSuccess(false);
     if (!validateForm()) {
       return;
     }
-
+    setIsSubmitting(true);
+    setErrors({});
     try {
-      setIsSubmitting(true);
-      
-      const selectedUserItemData = userItems.find(item => item.id === formData.selectedUserItem);
-      
-      const exchangeOffer = {
-        theirItem: selectedItem,
-        yourItem: selectedUserItemData || null,
-        additionalCash: formData.additionalCash,
-        message: formData.message,
-        exchangeType: formData.exchangeType,
-        netAmount: calculateNetAmount(),
-        timestamp: new Date().toISOString(),
-        status: 'pending'
-      };
-
-      await onSubmit(exchangeOffer);
+      // Call backend proposeSwap
+      const itemOfferedId = formData.selectedUserItem;
+      const itemRequestedId = selectedItem?.id;
+      if (!itemOfferedId || !itemRequestedId) {
+        setErrors({ submit: 'Missing item information.' });
+        setIsSubmitting(false);
+        return;
+      }
+      const swap = await callBackendFunction('proposeSwap', 'POST', { itemOfferedId, itemRequestedId });
+      setBackendNetAmount(swap.netAmount);
+      setSuccess(true);
+      showToast('Exchange offer sent!', 'success');
+      if (onSubmit) {
+        onSubmit(swap);
+      }
     } catch (error) {
-      console.error('Error submitting exchange form:', error);
       setErrors({ submit: 'Failed to submit exchange offer. Please try again.' });
+      showToast('Failed to send exchange offer', 'error');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const calculateNetAmount = () => {
+    if (backendNetAmount !== null) return backendNetAmount;
     const selectedUserItemData = userItems.find(item => item.id === formData.selectedUserItem);
     const yourItemValue = selectedUserItemData ? selectedUserItemData.price : 0;
     const theirItemValue = selectedItem ? selectedItem.price : 0;
-    
     switch (formData.exchangeType) {
       case "item-only":
         return theirItemValue - yourItemValue;
@@ -145,6 +159,20 @@ export default function ExchangeForm({ onSubmit, onBack, selectedItem, userItems
           textAlign: "center"
         }}>
           {errors.submit}
+        </div>
+      )}
+
+      {success && (
+        <div style={{ 
+          background: "#f0f9f4", 
+          border: "1px solid #22a06b", 
+          borderRadius: "8px", 
+          padding: "12px", 
+          marginBottom: "20px",
+          color: "#22a06b",
+          textAlign: "center"
+        }}>
+          Exchange offer sent successfully!
         </div>
       )}
 
@@ -300,7 +328,7 @@ export default function ExchangeForm({ onSubmit, onBack, selectedItem, userItems
           margin: 0, 
           fontWeight: 700, 
           fontSize: "1.1rem",
-          color: netAmount > 0 ? "#ff4d6d" : netAmount < 0 ? "#22a06b" : "#232F3E"
+          color: netAmount === 0 ? "#232F3E" : netAmount > 0 ? "#ff4d6d" : "#22a06b"
         }}>
           {netAmount === 0 ? "Even Exchange" : 
            netAmount > 0 ? `You need to pay ₹${netAmount}` : 
@@ -351,7 +379,7 @@ export default function ExchangeForm({ onSubmit, onBack, selectedItem, userItems
           disabled={userItems.length === 0 && (formData.exchangeType === "item-only" || formData.exchangeType === "item-plus-cash")}
           style={{ minWidth: "160px" }}
         >
-          Send Exchange Offer
+          {isSubmitting ? <><Spinner /> Submitting...</> : 'Send Exchange Offer'}
         </Button>
       </div>
     </form>

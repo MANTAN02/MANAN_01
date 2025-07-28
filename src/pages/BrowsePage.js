@@ -1,41 +1,34 @@
 import React, { useState, useEffect } from "react";
 import ItemCard from "../components/ItemCard";
-import { db } from '../firebase';
-import { collection, getDocs } from 'firebase/firestore';
-
-export const initialItems = [
-  // ... keep for category suggestions, but do not display
-];
+import { callBackendFunction } from '../AuthContext';
 
 export default function BrowsePage({ userItems, onAddToCart, onOfferExchange, onOfferFullPrice, search, searchCategory }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const hasOwnItem = userItems && userItems.length > 0;
 
   useEffect(() => {
     async function fetchItems() {
       setLoading(true);
-      const querySnapshot = await getDocs(collection(db, 'items'));
-      const firebaseItems = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setItems(firebaseItems);
+      setError(null);
+      try {
+        const params = {};
+        if (search) params.q = search;
+        if (searchCategory) params.category = searchCategory;
+        const data = await callBackendFunction('searchItems', 'GET', params);
+        setItems(data);
+      } catch (e) {
+        setError('Failed to load items');
+      }
       setLoading(false);
     }
     fetchItems();
-  }, []);
-
-  // Filter items by search/category
-  const filteredItems = items.filter(item => {
-    const matchesCategory = searchCategory && item.category
-      ? item.category.toLowerCase() === searchCategory.toLowerCase()
-      : true;
-    const matchesText = (item.name.toLowerCase().includes((search || "").toLowerCase()) ||
-      (item.description && item.description.toLowerCase().includes((search || "").toLowerCase())));
-    return matchesCategory && matchesText;
-  });
+  }, [search, searchCategory]);
 
   // Featured items (show only a few at the top)
-  const featuredItems = filteredItems.filter(item => item.featured);
-  const nonFeaturedItems = filteredItems.filter(item => !item.featured);
+  const featuredItems = items.filter(item => item.featured);
+  const nonFeaturedItems = items.filter(item => !item.featured);
 
   return (
     <>
@@ -53,6 +46,8 @@ export default function BrowsePage({ userItems, onAddToCart, onOfferExchange, on
             <div className="loading-spinner"></div>
             <p>Loading items...</p>
           </div>
+        ) : error ? (
+          <div className="loading-container" style={{color:'#c00'}}>{error}</div>
         ) : (
           <>
             {featuredItems.length > 0 && (
