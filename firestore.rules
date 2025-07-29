@@ -1,18 +1,196 @@
-rules_version='2'
-
+rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isVerifiedUser() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isVerified == true;
+    }
+    
+    function isValidPrice(price) {
+      return price is number && price >= 1000;
+    }
+    
+    function isValidRating(rating) {
+      return rating is number && rating >= 1 && rating <= 5;
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if false; // Users cannot delete their accounts
+      
+      // User subcollections
+      match /wishlist/{itemId} {
+        allow read, write: if isOwner(userId);
+      }
+      
+      match /notifications/{notificationId} {
+        allow read, write: if isOwner(userId);
+      }
+      
+      match /cart/{itemId} {
+        allow read, write: if isOwner(userId);
+      }
+      
+      match /deliveryLocations/{locationId} {
+        allow read, write: if isOwner(userId);
+      }
+      
+      match /favorites/{itemId} {
+        allow read, write: if isOwner(userId);
+      }
+      
+      match /recentViews/{itemId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+    
+    // Items collection
+    match /items/{itemId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && 
+        request.resource.data.ownerId == request.auth.uid &&
+        request.resource.data.price >= 1000 &&
+        request.resource.data.status == "active";
+      allow update: if isAuthenticated() && 
+        resource.data.ownerId == request.auth.uid &&
+        request.resource.data.ownerId == request.auth.uid;
+      allow delete: if isAuthenticated() && 
+        resource.data.ownerId == request.auth.uid;
+    }
+    
+    // Swaps collection
+    match /swaps/{swapId} {
+      allow read: if isAuthenticated() && 
+        (resource.data.offeredByUserId == request.auth.uid || 
+         resource.data.requestedFromUserId == request.auth.uid);
+      allow create: if isAuthenticated() && 
+        request.resource.data.offeredByUserId == request.auth.uid;
+      allow update: if isAuthenticated() && 
+        (resource.data.offeredByUserId == request.auth.uid || 
+         resource.data.requestedFromUserId == request.auth.uid);
+      allow delete: if false; // Swaps cannot be deleted
+    }
+    
+    // Ratings collection
+    match /ratings/{ratingId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && 
+        request.resource.data.fromUserId == request.auth.uid &&
+        isValidRating(request.resource.data.rating);
+      allow update: if false; // Ratings cannot be updated
+      allow delete: if false; // Ratings cannot be deleted
+    }
+    
+    // Disputes collection
+    match /disputes/{disputeId} {
+      allow read: if isAuthenticated() && 
+        (resource.data.createdBy == request.auth.uid || 
+         request.auth.uid == "support"); // Support team access
+      allow create: if isAuthenticated() && 
+        request.resource.data.createdBy == request.auth.uid;
+      allow update: if isAuthenticated() && 
+        (resource.data.createdBy == request.auth.uid || 
+         request.auth.uid == "support");
+      allow delete: if false; // Disputes cannot be deleted
+    }
+    
+    // Deliveries collection
+    match /deliveries/{deliveryId} {
+      allow read: if isAuthenticated() && 
+        (resource.data.fromUserId == request.auth.uid || 
+         resource.data.toUserId == request.auth.uid);
+      allow create: if isAuthenticated() && 
+        request.resource.data.fromUserId == request.auth.uid;
+      allow update: if isAuthenticated() && 
+        (resource.data.fromUserId == request.auth.uid || 
+         resource.data.toUserId == request.auth.uid);
+      allow delete: if false; // Deliveries cannot be deleted
+    }
+    
+    // Payments collection
+    match /payments/{paymentId} {
+      allow read: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && 
+        request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+      allow delete: if false; // Payments cannot be deleted
+    }
+    
+    // Analytics collection (read-only for users, full access for admin)
+    match /analytics/{analyticsId} {
+      allow read: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && 
+        request.resource.data.userId == request.auth.uid;
+      allow update, delete: if false; // Analytics cannot be modified
+    }
+    
+    // Categories collection (read-only)
+    match /categories/{categoryId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Categories are managed by admin
+    }
+    
+    // Reports collection
+    match /reports/{reportId} {
+      allow read: if isAuthenticated() && 
+        (resource.data.reportedBy == request.auth.uid || 
+         request.auth.uid == "support");
+      allow create: if isAuthenticated() && 
+        request.resource.data.reportedBy == request.auth.uid;
+      allow update: if isAuthenticated() && 
+        (resource.data.reportedBy == request.auth.uid || 
+         request.auth.uid == "support");
+      allow delete: if false; // Reports cannot be deleted
+    }
+    
+    // Chat messages collection
+    match /chats/{chatId}/messages/{messageId} {
+      allow read: if isAuthenticated() && 
+        (resource.data.senderId == request.auth.uid || 
+         resource.data.receiverId == request.auth.uid);
+      allow create: if isAuthenticated() && 
+        request.resource.data.senderId == request.auth.uid;
+      allow update: if false; // Messages cannot be updated
+      allow delete: if isAuthenticated() && 
+        resource.data.senderId == request.auth.uid;
+    }
+    
+    // Chat metadata collection
+    match /chats/{chatId} {
+      allow read: if isAuthenticated() && 
+        (resource.data.participants[request.auth.uid] != null);
+      allow create: if isAuthenticated() && 
+        request.resource.data.participants[request.auth.uid] != null;
+      allow update: if isAuthenticated() && 
+        resource.data.participants[request.auth.uid] != null;
+      allow delete: if false; // Chat metadata cannot be deleted
+    }
+    
+    // System settings collection (admin only)
+    match /system/{settingId} {
+      allow read: if isAuthenticated();
+      allow write: if request.auth.uid == "admin";
+    }
+    
+    // Deny all other access
     match /{document=**} {
-      // This rule allows anyone with your database reference to view, edit,
-      // and delete all data in your database. It is useful for getting
-      // started, but it is configured to expire after 30 days because it
-      // leaves your app open to attackers. At that time, all client
-      // requests to your database will be denied.
-      //
-      // Make sure to write security rules for your app before that time, or
-      // else all client requests to your database will be denied until you
-      // update your rules.
-      allow read, write: if request.time < timestamp.date(2025, 8, 22);
+      allow read, write: if false;
     }
   }
 }
