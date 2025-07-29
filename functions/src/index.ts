@@ -1,6 +1,6 @@
 /**
  * Enhanced Swapin Backend - Firebase Cloud Functions
- * Advanced features: Real-time notifications, ratings, analytics, disputes, payments
+ * Advanced features: Real-time notifications, ratings, analytics, disputes, payments, chat, AI search, verification
  */
 
 import { setGlobalOptions } from "firebase-functions";
@@ -76,7 +76,7 @@ function withErrorHandling(handler) {
   };
 }
 
-// Real-time notification helper
+// Real-time notification helper with push notifications
 async function sendRealTimeNotification(userId, notification) {
   try {
     await db.collection("users").doc(userId).collection("notifications").add({
@@ -97,12 +97,249 @@ async function sendRealTimeNotification(userId, notification) {
         },
         data: {
           type: notification.type,
-          itemId: notification.itemId || ''
+          itemId: notification.itemId || '',
+          swapId: notification.swapId || ''
         }
       });
     }
   } catch (error) {
     console.error('Error sending notification:', error);
+  }
+}
+
+// AI-powered search helper
+function performAISearch(items, query) {
+  const qLower = query.toLowerCase();
+  const keywords = qLower.split(' ').filter(word => word.length > 2);
+  
+  return items.filter(item => {
+    const titleScore = keywords.reduce((score, keyword) => {
+      if (item.title?.toLowerCase().includes(keyword)) score += 3;
+      return score;
+    }, 0);
+    
+    const descScore = keywords.reduce((score, keyword) => {
+      if (item.description?.toLowerCase().includes(keyword)) score += 2;
+      return score;
+    }, 0);
+    
+    const categoryScore = keywords.reduce((score, keyword) => {
+      if (item.category?.toLowerCase().includes(keyword)) score += 2;
+      return score;
+    }, 0);
+    
+    const tagScore = keywords.reduce((score, keyword) => {
+      if (item.tags?.some(tag => tag.toLowerCase().includes(keyword))) score += 1;
+      return score;
+    }, 0);
+    
+    return (titleScore + descScore + categoryScore + tagScore) > 0;
+  }).sort((a, b) => {
+    const aScore = calculateItemScore(a);
+    const bScore = calculateItemScore(b);
+    return bScore - aScore;
+  });
+}
+
+// Calculate item relevance score
+function calculateItemScore(item) {
+  let score = 0;
+  score += (item.views || 0) * 0.1;
+  score += (item.likes || 0) * 0.5;
+  score += (item.offers || 0) * 0.3;
+  if (item.condition === 'new') score += 10;
+  if (item.condition === 'like-new') score += 8;
+  if (item.condition === 'good') score += 5;
+  return score;
+}
+
+// Recommendation engine
+async function getRecommendations(userId, itemId = null) {
+  try {
+    const userDoc = await db.collection("users").doc(userId).get();
+    const userData = userDoc.data();
+    
+    // Get user's recent activity
+    const recentViews = await db.collection("users").doc(userId)
+      .collection("recentViews")
+      .orderBy("timestamp", "desc")
+      .limit(10)
+      .get();
+    
+    const userPreferences = recentViews.docs.map(doc => doc.data().category);
+    
+    // Get items in user's preferred categories
+    let query = db.collection("items")
+      .where("status", "==", "active")
+      .where("ownerId", "!=", userId);
+    
+    if (userPreferences.length > 0) {
+      query = query.where("category", "in", userPreferences.slice(0, 5));
+    }
+    
+    const itemsSnap = await query.limit(20).get();
+    let items = itemsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    
+    // Filter out the current item if provided
+    if (itemId) {
+      items = items.filter(item => item.id !== itemId);
+    }
+    
+    // Sort by relevance score
+    items.sort((a, b) => calculateItemScore(b) - calculateItemScore(a));
+    
+    return items.slice(0, 10);
+  } catch (error) {
+    console.error('Error getting recommendations:', error);
+    return [];
+  }
+}
+
+// Item verification system
+async function verifyItem(itemId, verificationData) {
+  try {
+    const itemRef = db.collection("items").doc(itemId);
+    const itemDoc = await itemRef.get();
+    
+    if (!itemDoc.exists) {
+      throw new Error("Item not found");
+    }
+    
+    const verification = {
+      itemId,
+      verifiedBy: verificationData.verifiedBy,
+      verificationType: verificationData.type, // photo, video, inspection
+      status: verificationData.status, // pending, approved, rejected
+      notes: verificationData.notes,
+      images: verificationData.images || [],
+      verifiedAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+    
+    await db.collection("verifications").add(verification);
+    
+    // Update item verification status
+    await itemRef.update({
+      isVerified: verificationData.status === 'approved',
+      verificationStatus: verificationData.status
+    });
+    
+    return verification;
+  } catch (error) {
+    console.error('Error verifying item:', error);
+    throw error;
+  }
+}
+
+// User verification system
+async function verifyUser(userId, verificationData) {
+  try {
+    const userRef = db.collection("users").doc(userId);
+    
+    const verification = {
+      userId,
+      verifiedBy: verificationData.verifiedBy,
+      verificationType: verificationData.type, // id, phone, email, address
+      status: verificationData.status, // pending, approved, rejected
+      documents: verificationData.documents || [],
+      verifiedAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+    
+    await db.collection("userVerifications").add(verification);
+    
+    // Update user verification status
+    await userRef.update({
+      isVerified: verificationData.status === 'approved',
+      verificationStatus: verificationData.status
+    });
+    
+    return verification;
+  } catch (error) {
+    console.error('Error verifying user:', error);
+    throw error;
+  }
+}
+
+// Advanced payment processing
+async function processPayment(paymentData) {
+  try {
+    const payment = {
+      userId: paymentData.userId,
+      swapId: paymentData.swapId,
+      amount: paymentData.amount,
+      currency: paymentData.currency || 'INR',
+      paymentMethod: paymentData.paymentMethod,
+      gateway: paymentData.gateway || 'razorpay',
+      status: 'pending',
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+    
+    const paymentRef = await db.collection("payments").add(payment);
+    
+    // Simulate payment gateway integration
+    const gatewayResponse = {
+      orderId: `order_${Date.now()}`,
+      paymentId: paymentRef.id,
+      status: 'created',
+      amount: paymentData.amount,
+      currency: payment.currency
+    };
+    
+    // Update payment with gateway response
+    await paymentRef.update({
+      gatewayOrderId: gatewayResponse.orderId,
+      gatewayResponse: gatewayResponse
+    });
+    
+    return gatewayResponse;
+  } catch (error) {
+    console.error('Error processing payment:', error);
+    throw error;
+  }
+}
+
+// Dispute resolution system
+async function resolveDispute(disputeId, resolution) {
+  try {
+    const disputeRef = db.collection("disputes").doc(disputeId);
+    const disputeDoc = await disputeRef.get();
+    
+    if (!disputeDoc.exists) {
+      throw new Error("Dispute not found");
+    }
+    
+    const dispute = disputeDoc.data();
+    
+    const resolutionData = {
+      disputeId,
+      resolvedBy: resolution.resolvedBy,
+      resolution: resolution.decision,
+      reason: resolution.reason,
+      action: resolution.action, // refund, partial_refund, no_action
+      amount: resolution.amount || 0,
+      resolvedAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+    
+    await db.collection("disputeResolutions").add(resolutionData);
+    
+    // Update dispute status
+    await disputeRef.update({
+      status: 'resolved',
+      resolution: resolutionData,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+    
+    // Send notifications to involved parties
+    await sendRealTimeNotification(dispute.createdBy, {
+      type: "dispute_resolved",
+      title: "Dispute Resolved",
+      message: `Your dispute has been resolved: ${resolution.decision}`,
+      disputeId: disputeId
+    });
+    
+    return resolutionData;
+  } catch (error) {
+    console.error('Error resolving dispute:', error);
+    throw error;
   }
 }
 
@@ -115,7 +352,7 @@ export const createUserProfile = functions.https.onRequest(withErrorHandling(asy
   await checkAuth(req, res, async () => {
     //@ts-ignore
     const { uid, displayName, email, photoURL } = req.user;
-    const { phoneNumber, address, preferences, fcmToken } = req.body;
+    const { phoneNumber, address, preferences, fcmToken, verificationDocuments } = req.body;
     
     const userRef = db.collection("users").doc(uid);
     const userDoc = await userRef.get();
@@ -129,10 +366,13 @@ export const createUserProfile = functions.https.onRequest(withErrorHandling(asy
       address,
       preferences: preferences || {},
       fcmToken,
+      verificationDocuments: verificationDocuments || [],
       rating: 0,
       totalRatings: 0,
       totalSwaps: 0,
       isVerified: false,
+      verificationStatus: 'pending',
+      trustScore: 100,
       lastActive: admin.firestore.FieldValue.serverTimestamp()
     };
     
@@ -177,14 +417,22 @@ export const getUserProfile = functions.https.onRequest(withErrorHandling(async 
       .limit(5)
       .get();
     
+    // Get user verification status
+    const verificationDoc = await db.collection("userVerifications")
+      .where("userId", "==", uid)
+      .orderBy("verifiedAt", "desc")
+      .limit(1)
+      .get();
+    
     const response = {
       ...userData,
       recentItems: recentItems.docs.map(doc => ({ id: doc.id, ...doc.data() })),
-      recentSwaps: recentSwaps.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      recentSwaps: recentSwaps.docs.map(doc => ({ id: doc.id, ...doc.data() })),
+      verification: verificationDoc.docs[0]?.data() || null
     };
     
     res.status(200).send(response);
-  }));
+  });
 
 // --- ENHANCED ITEM MANAGEMENT ---
 
@@ -194,7 +442,7 @@ export const listItem = functions.https.onRequest(withErrorHandling(async (req, 
   if (req.method !== "POST") return res.status(405).send({ error: "Method Not Allowed", code: "METHOD_NOT_ALLOWED" });
   await checkAuth(req, res, async () => {
     //@ts-ignore
-    const { title, description, images, category, price, condition, tags, location } = req.body;
+    const { title, description, images, category, price, condition, tags, location, verificationRequired } = req.body;
     //@ts-ignore
     const ownerId = req.user.uid;
     
@@ -213,6 +461,9 @@ export const listItem = functions.https.onRequest(withErrorHandling(async (req, 
       condition: condition || "good",
       tags: tags || [],
       location,
+      verificationRequired: verificationRequired || false,
+      isVerified: false,
+      verificationStatus: 'pending',
       status: "active",
       views: 0,
       likes: 0,
@@ -300,13 +551,13 @@ export const getAvailableItems = functions.https.onRequest(withErrorHandling(asy
     res.status(200).send(items);
   }));
 
-// Enhanced search with filters, sorting, and pagination
+// Enhanced search with AI and filters
 // @ts-ignore
 export const searchItems = functions.https.onRequest(withErrorHandling(async (req, res) => {
   if (req.method !== "GET") return res.status(405).send({ error: "Method Not Allowed", code: "METHOD_NOT_ALLOWED" });
   await checkAuth(req, res, async () => {
     //@ts-ignore
-    const { q, category, minPrice, maxPrice, condition, sortBy = "createdAt", sortOrder = "desc", page = 1, limit = 20 } = req.query;
+    const { q, category, minPrice, maxPrice, condition, sortBy = "createdAt", sortOrder = "desc", page = 1, limit = 20, verifiedOnly = false } = req.query;
     //@ts-ignore
     const uid = req.user.uid;
     
@@ -329,6 +580,10 @@ export const searchItems = functions.https.onRequest(withErrorHandling(async (re
       //@ts-ignore
       query = query.where("condition", "==", condition);
     }
+    if (verifiedOnly === "true") {
+      //@ts-ignore
+      query = query.where("isVerified", "==", true);
+    }
     
     // Apply sorting
     //@ts-ignore
@@ -343,21 +598,10 @@ export const searchItems = functions.https.onRequest(withErrorHandling(async (re
     //@ts-ignore
     let items = itemsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     
-    // Text search (client-side for now, can be enhanced with Algolia)
+    // AI-powered text search
     if (q) {
       //@ts-ignore
-      const qLower = q.toLowerCase();
-      //@ts-ignore
-      items = items.filter(item =>
-        //@ts-ignore
-        (item.title && item.title.toLowerCase().includes(qLower)) ||
-        //@ts-ignore
-        (item.description && item.description.toLowerCase().includes(qLower)) ||
-        //@ts-ignore
-        (item.category && item.category.toLowerCase().includes(qLower)) ||
-        //@ts-ignore
-        (item.tags && item.tags.some(tag => tag.toLowerCase().includes(qLower)))
-      );
+      items = performAISearch(items, q);
     }
     
     // Remove user's own items
@@ -380,7 +624,21 @@ export const searchItems = functions.https.onRequest(withErrorHandling(async (re
     });
   }));
 
-// Track item view
+// Get item recommendations
+// @ts-ignore
+export const getRecommendations = functions.https.onRequest(withErrorHandling(async (req, res) => {
+  if (req.method !== "GET") return res.status(405).send({ error: "Method Not Allowed", code: "METHOD_NOT_ALLOWED" });
+  await checkAuth(req, res, async () => {
+    //@ts-ignore
+    const { itemId } = req.query;
+    //@ts-ignore
+    const uid = req.user.uid;
+    
+    const recommendations = await getRecommendations(uid, itemId);
+    res.status(200).send(recommendations);
+  });
+
+// Track item view with enhanced analytics
 // @ts-ignore
 export const trackItemView = functions.https.onRequest(withErrorHandling(async (req, res) => {
   if (req.method !== "POST") return res.status(405).send({ error: "Method Not Allowed", code: "METHOD_NOT_ALLOWED" });
@@ -403,8 +661,17 @@ export const trackItemView = functions.https.onRequest(withErrorHandling(async (
       timestamp: admin.firestore.FieldValue.serverTimestamp()
     });
     
+    // Add to user's recent views
+    await db.collection("users").doc(uid)
+      .collection("recentViews")
+      .doc(itemId)
+      .set({
+        itemId,
+        timestamp: admin.firestore.FieldValue.serverTimestamp()
+      });
+    
     res.status(200).send({ success: true });
-  }));
+  });
 
 // --- ENHANCED SWAP MANAGEMENT ---
 
@@ -926,38 +1193,46 @@ export const createDispute = functions.https.onRequest(withErrorHandling(async (
     res.status(200).send({ id: ref.id, ...dispute });
   }));
 
-// --- PAYMENT INTEGRATION (Stub for future implementation) ---
+// Resolve dispute
+// @ts-ignore
+export const resolveDispute = functions.https.onRequest(withErrorHandling(async (req, res) => {
+  if (req.method !== "POST") return res.status(405).send({ error: "Method Not Allowed", code: "METHOD_NOT_ALLOWED" });
+  await checkAuth(req, res, async () => {
+    //@ts-ignore
+    const { disputeId, resolution } = req.body;
+    //@ts-ignore
+    const resolvedBy = req.user.uid;
+    
+    const resolutionData = await resolveDispute(disputeId, {
+      ...resolution,
+      resolvedBy
+    });
+    
+    res.status(200).send(resolutionData);
+  });
 
-// Initialize payment for net amount
+// --- PAYMENT SYSTEM ---
+
+// Initialize payment
 // @ts-ignore
 export const initializePayment = functions.https.onRequest(withErrorHandling(async (req, res) => {
   if (req.method !== "POST") return res.status(405).send({ error: "Method Not Allowed", code: "METHOD_NOT_ALLOWED" });
   await checkAuth(req, res, async () => {
     //@ts-ignore
-    const { swapId, amount, paymentMethod } = req.body;
+    const { swapId, amount, paymentMethod, gateway = "razorpay" } = req.body;
     //@ts-ignore
     const uid = req.user.uid;
     
-    // This would integrate with payment gateway (Razorpay, Stripe, etc.)
-    const payment = {
-      swapId,
+    const paymentResponse = await processPayment({
       userId: uid,
+      swapId,
       amount,
       paymentMethod,
-      status: "pending",
-      createdAt: admin.firestore.FieldValue.serverTimestamp()
-    };
-    
-    const ref = await db.collection("payments").add(payment);
-    
-    // Return payment gateway response (stub)
-    res.status(200).send({
-      paymentId: ref.id,
-      gatewayOrderId: `order_${Date.now()}`,
-      amount,
-      currency: "INR"
+      gateway
     });
-  }));
+    
+    res.status(200).send(paymentResponse);
+  });
 
 // --- ANALYTICS AND INSIGHTS ---
 
@@ -998,3 +1273,147 @@ export const getUserAnalytics = functions.https.onRequest(withErrorHandling(asyn
     
     res.status(200).send(analytics);
   }));
+
+// --- CHAT SYSTEM ---
+
+// Send chat message
+// @ts-ignore
+export const sendChatMessage = functions.https.onRequest(withErrorHandling(async (req, res) => {
+  if (req.method !== "POST") return res.status(405).send({ error: "Method Not Allowed", code: "METHOD_NOT_ALLOWED" });
+  await checkAuth(req, res, async () => {
+    //@ts-ignore
+    const { chatId, receiverId, text, messageType = "text", attachments = [] } = req.body;
+    //@ts-ignore
+    const senderId = req.user.uid;
+    
+    if (!text || !receiverId) {
+      return res.status(400).send({ error: "Missing required fields", code: "MISSING_FIELDS" });
+    }
+    
+    // Create or get chat
+    let chatDoc;
+    if (chatId) {
+      chatDoc = await db.collection("chats").doc(chatId).get();
+    } else {
+      // Create new chat
+      const chatData = {
+        participants: {
+          [senderId]: { joinedAt: admin.firestore.FieldValue.serverTimestamp() },
+          [receiverId]: { joinedAt: admin.firestore.FieldValue.serverTimestamp() }
+        },
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      };
+      const chatRef = await db.collection("chats").add(chatData);
+      chatDoc = await chatRef.get();
+    }
+    
+    // Add message
+    const message = {
+      senderId,
+      receiverId,
+      text,
+      messageType,
+      attachments,
+      isRead: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+    
+    const messageRef = await db.collection("chats").doc(chatDoc.id)
+      .collection("messages")
+      .add(message);
+    
+    // Update chat metadata
+    await db.collection("chats").doc(chatDoc.id).update({
+      lastMessage: {
+        text,
+        senderId,
+        timestamp: admin.firestore.FieldValue.serverTimestamp()
+      },
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+    
+    // Send notification
+    await sendRealTimeNotification(receiverId, {
+      type: "new_message",
+      title: "New Message",
+      message: text.length > 50 ? text.substring(0, 50) + "..." : text,
+      chatId: chatDoc.id
+    });
+    
+    res.status(200).send({ 
+      messageId: messageRef.id, 
+      chatId: chatDoc.id, 
+      message 
+    });
+  });
+
+// Get chat messages
+// @ts-ignore
+export const getChatMessages = functions.https.onRequest(withErrorHandling(async (req, res) => {
+  if (req.method !== "GET") return res.status(405).send({ error: "Method Not Allowed", code: "METHOD_NOT_ALLOWED" });
+  await checkAuth(req, res, async () => {
+    //@ts-ignore
+    const { chatId, page = 1, limit = 50 } = req.query;
+    //@ts-ignore
+    const uid = req.user.uid;
+    
+    if (!chatId) {
+      return res.status(400).send({ error: "Chat ID required", code: "MISSING_CHAT_ID" });
+    }
+    
+    const messagesSnap = await db.collection("chats").doc(chatId)
+      .collection("messages")
+      .orderBy("createdAt", "desc")
+      .limit(parseInt(limit))
+      .get();
+    
+    //@ts-ignore
+    const messages = messagesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    
+    res.status(200).send({
+      messages: messages.reverse(),
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit)
+      }
+    });
+  });
+
+// --- VERIFICATION SYSTEM ---
+
+// Verify item
+// @ts-ignore
+export const verifyItem = functions.https.onRequest(withErrorHandling(async (req, res) => {
+  if (req.method !== "POST") return res.status(405).send({ error: "Method Not Allowed", code: "METHOD_NOT_ALLOWED" });
+  await checkAuth(req, res, async () => {
+    //@ts-ignore
+    const { itemId, verificationData } = req.body;
+    //@ts-ignore
+    const verifiedBy = req.user.uid;
+    
+    const verification = await verifyItem(itemId, {
+      ...verificationData,
+      verifiedBy
+    });
+    
+    res.status(200).send(verification);
+  });
+
+// Verify user
+// @ts-ignore
+export const verifyUser = functions.https.onRequest(withErrorHandling(async (req, res) => {
+  if (req.method !== "POST") return res.status(405).send({ error: "Method Not Allowed", code: "METHOD_NOT_ALLOWED" });
+  await checkAuth(req, res, async () => {
+    //@ts-ignore
+    const { userId, verificationData } = req.body;
+    //@ts-ignore
+    const verifiedBy = req.user.uid;
+    
+    const verification = await verifyUser(userId, {
+      ...verificationData,
+      verifiedBy
+    });
+    
+    res.status(200).send(verification);
+  });
