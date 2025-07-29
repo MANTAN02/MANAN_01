@@ -537,6 +537,7 @@ export const getItems = functions.https.onRequest(withErrorHandling(async (req, 
     const items = itemsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     res.status(200).send(items);
   }));
+}));
 
 // Get available items (not owned by user)
 // @ts-ignore
@@ -550,6 +551,7 @@ export const getAvailableItems = functions.https.onRequest(withErrorHandling(asy
     const items = itemsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     res.status(200).send(items);
   }));
+}));
 
 // Enhanced search with AI and filters
 // @ts-ignore
@@ -1378,7 +1380,7 @@ export const getChatMessages = functions.https.onRequest(withErrorHandling(async
         limit: parseInt(limit)
       }
     });
-  });
+  }));
 
 // --- VERIFICATION SYSTEM ---
 
@@ -1398,7 +1400,8 @@ export const verifyItem = functions.https.onRequest(withErrorHandling(async (req
     });
     
     res.status(200).send(verification);
-  });
+  }));
+}));
 
 // Verify user
 // @ts-ignore
@@ -1416,4 +1419,5 @@ export const verifyUser = functions.https.onRequest(withErrorHandling(async (req
     });
     
     res.status(200).send(verification);
-  });
+  }));
+}));

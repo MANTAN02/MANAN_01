@@ -20,7 +20,7 @@ import WishlistPage from './pages/WishlistPage';
 import MyListingsPage from './pages/MyListingsPage';
 import NotificationsPage from './pages/NotificationsPage';
 import SettingsPage from './pages/SettingsPage';
-import { ToastProvider } from './components/ToastContext';
+import { ToastProvider } from './ToastContext';
 import './index.css';
 
 const ProtectedRoute = ({ children }) => {
@@ -28,7 +28,7 @@ const ProtectedRoute = ({ children }) => {
   return user ? children : <Navigate to="/login" />;
 };
 
-const App = () => {
+const AppContent = () => {
   const [search, setSearch] = useState("");
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -53,36 +53,42 @@ const App = () => {
   }, [user]);
 
   return (
+    <Router>
+      <div className="min-h-screen bg-gray-50">
+        <EnhancedHeader searchValue={search} onSearchChange={setSearch} />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Routes>
+            <Route path="/" element={<BrowsePage items={items} search={search} />} />
+            <Route path="/browse" element={<BrowsePage items={items} search={search} />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignupPage />} />
+            <Route path="/about" element={<AboutUsPage />} />
+            <Route path="/list" element={<ProtectedRoute><ListItemPage /></ProtectedRoute>} />
+            <Route path="/cart" element={<ProtectedRoute><CartPage /></ProtectedRoute>} />
+            <Route path="/product/:id" element={<ProductDetailPage />} />
+            <Route path="/exchange/:id" element={<ProtectedRoute><ExchangePage /></ProtectedRoute>} />
+            <Route path="/delivery/:id" element={<ProtectedRoute><DeliveryPage /></ProtectedRoute>} />
+            <Route path="/location" element={<ProtectedRoute><LocationPage /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
+            <Route path="/updates" element={<ProtectedRoute><UpdatesPage /></ProtectedRoute>} />
+            <Route path="/exchange-offers" element={<ProtectedRoute><ExchangeOfferPage /></ProtectedRoute>} />
+            <Route path="/wishlist" element={<ProtectedRoute><WishlistPage /></ProtectedRoute>} />
+            <Route path="/my-listings" element={<ProtectedRoute><MyListingsPage /></ProtectedRoute>} />
+            <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+          </Routes>
+        </main>
+      </div>
+    </Router>
+  );
+};
+
+const App = () => {
+  return (
     <ToastProvider>
       <AuthProvider>
         <CartProvider>
-          <Router>
-            <div className="min-h-screen bg-gray-50">
-              <EnhancedHeader searchValue={search} onSearchChange={setSearch} />
-              <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <Routes>
-                  <Route path="/" element={<BrowsePage items={items} search={search} />} />
-                  <Route path="/browse" element={<BrowsePage items={items} search={search} />} />
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/signup" element={<SignupPage />} />
-                  <Route path="/about" element={<AboutUsPage />} />
-                  <Route path="/list" element={<ProtectedRoute><ListItemPage /></ProtectedRoute>} />
-                  <Route path="/cart" element={<ProtectedRoute><CartPage /></ProtectedRoute>} />
-                  <Route path="/product/:id" element={<ProductDetailPage />} />
-                  <Route path="/exchange/:id" element={<ProtectedRoute><ExchangePage /></ProtectedRoute>} />
-                  <Route path="/delivery/:id" element={<ProtectedRoute><DeliveryPage /></ProtectedRoute>} />
-                  <Route path="/location" element={<ProtectedRoute><LocationPage /></ProtectedRoute>} />
-                  <Route path="/profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
-                  <Route path="/updates" element={<ProtectedRoute><UpdatesPage /></ProtectedRoute>} />
-                  <Route path="/exchange-offers" element={<ProtectedRoute><ExchangeOfferPage /></ProtectedRoute>} />
-                  <Route path="/wishlist" element={<ProtectedRoute><WishlistPage /></ProtectedRoute>} />
-                  <Route path="/my-listings" element={<ProtectedRoute><MyListingsPage /></ProtectedRoute>} />
-                  <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
-                  <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-                </Routes>
-              </main>
-            </div>
-          </Router>
+          <AppContent />
         </CartProvider>
       </AuthProvider>
     </ToastProvider>

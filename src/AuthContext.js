@@ -1,11 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { auth } from './firebase';
+import { auth, googleProvider } from './firebase';
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
   signOut, 
   onAuthStateChanged,
-  GoogleAuthProvider,
   signInWithPopup
 } from 'firebase/auth';
 
@@ -55,15 +54,19 @@ export const AuthProvider = ({ children }) => {
     return signOut(auth);
   };
 
-  const googleLogin = async () => {
+  const signInWithGoogle = async () => {
     try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, googleProvider);
       console.log("Google login successful:", result.user);
       
       // Call backend to create user profile
       try {
-        await callBackendFunction('createUserProfile', 'POST', {});
+        await callBackendFunction('createUserProfile', 'POST', {
+          email: result.user.email,
+          displayName: result.user.displayName,
+          photoURL: result.user.photoURL,
+          uid: result.user.uid
+        });
         console.log("User profile created/updated successfully");
       } catch (error) {
         console.error("Error creating user profile:", error);
@@ -73,9 +76,24 @@ export const AuthProvider = ({ children }) => {
       return result;
     } catch (error) {
       console.error("Google login error:", error);
-      throw error;
+      
+      // Provide more specific error messages
+      if (error.code === 'auth/popup-closed-by-user') {
+        throw new Error('Login cancelled. Please try again.');
+      } else if (error.code === 'auth/popup-blocked') {
+        throw new Error('Popup blocked by browser. Please allow popups and try again.');
+      } else if (error.code === 'auth/network-request-failed') {
+        throw new Error('Network error. Please check your connection and try again.');
+      } else if (error.code === 'auth/unauthorized-domain') {
+        throw new Error('This domain is not authorized for Google login. Please contact support.');
+      } else {
+        throw new Error('Google login failed. Please try again.');
+      }
     }
   };
+
+  // Keep the old method name for backward compatibility
+  const googleLogin = signInWithGoogle;
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -91,7 +109,8 @@ export const AuthProvider = ({ children }) => {
     signup,
     login,
     logout,
-    googleLogin,
+    signInWithGoogle,
+    googleLogin, // Keep for backward compatibility
     callBackendFunction
   };
 

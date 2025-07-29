@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
-import { useCart } from '../CartContext';
+import { useCart } from './CartContext';
 import { useToast } from '../ToastContext';
 import { callBackendFunction } from '../AuthContext';
 

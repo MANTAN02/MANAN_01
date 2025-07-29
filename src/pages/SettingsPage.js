@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth, callBackendFunction } from '../AuthContext';
 import { FaCog, FaUser, FaShieldAlt, FaBell, FaPalette, FaGlobe, FaTrash, FaSave, FaEye, FaEyeSlash } from 'react-icons/fa';
-import { useToast } from '../components/ToastContext';
+import { useToast } from '../ToastContext';
 
 function Spinner() {
   return (

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import Button from "./Button";
 import { callBackendFunction } from '../AuthContext';
-import { useToast } from './ToastContext';
+import { useToast } from '../ToastContext';
 
 function Spinner() {
   return (

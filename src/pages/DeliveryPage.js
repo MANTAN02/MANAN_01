@@ -1,238 +1,412 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useCart } from "../components/CartContext";
-import DeliveryForm from "../components/DeliveryForm";
-import Button from "../components/Button";
-import "../styles.css";
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../AuthContext';
+import { useToast } from '../ToastContext';
+import { callBackendFunction } from '../AuthContext';
+import '../styles.css';
 
-export default function DeliveryPage({ item, onBack, onConfirm }) {
+const DeliveryPage = () => {
+  const { id } = useParams();
+  const [delivery, setDelivery] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
+  const [deliveryAddress, setDeliveryAddress] = useState({
+    street: '',
+    city: '',
+    state: '',
+    pincode: '',
+    phone: ''
+  });
+  const { user } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
-  const { cartItems, getCartTotal, clearCart } = useCart();
-  const [orderProcessing, setOrderProcessing] = useState(false);
-  const [orderComplete, setOrderComplete] = useState(false);
 
-  // Use cart items if available, otherwise use single item
-  const orderItems = cartItems.length > 0 ? cartItems : (item ? [{ ...item, quantity: 1 }] : []);
-  const orderTotal = cartItems.length > 0 ? getCartTotal() : (item ? item.price : 0);
+  useEffect(() => {
+    fetchDeliveryData();
+  }, [id]);
 
-  const handleSubmit = async (deliveryData) => {
+  const fetchDeliveryData = async () => {
     try {
-      setOrderProcessing(true);
+      const deliveryData = await callBackendFunction('getDelivery', 'GET', { id });
+      setDelivery(deliveryData);
       
-      // Simulate order processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const orderData = {
-        items: orderItems,
-        deliveryInfo: deliveryData,
-        total: orderTotal,
-        orderDate: new Date().toISOString(),
-        orderId: `ORD-${Date.now()}`,
-        status: 'confirmed'
-      };
-
-      console.log("Order data:", orderData);
-      
-      if (onConfirm) {
-        onConfirm(orderData);
+      if (deliveryData?.address) {
+        setDeliveryAddress(deliveryData.address);
       }
-
-      // Clear cart after successful order
-      if (cartItems.length > 0) {
-        await clearCart();
-      }
-
-      setOrderComplete(true);
-      
     } catch (error) {
-      console.error('Error processing order:', error);
-      alert('Failed to process order. Please try again.');
+      showToast('Failed to load delivery details', 'error');
     } finally {
-      setOrderProcessing(false);
+      setLoading(false);
     }
   };
 
-  const handleBackToCart = () => {
-    if (onBack) {
-      onBack();
+  const handleAddressChange = (field, value) => {
+    setDeliveryAddress(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleUpdateAddress = async () => {
+    setUpdating(true);
+    try {
+      await callBackendFunction('updateDeliveryAddress', 'PUT', {
+        deliveryId: id,
+        address: deliveryAddress
+      });
+      showToast('Delivery address updated successfully!', 'success');
+    } catch (error) {
+      showToast('Failed to update address', 'error');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleTrackDelivery = () => {
+    if (delivery?.trackingNumber) {
+      window.open(`https://tracking.example.com/${delivery.trackingNumber}`, '_blank');
     } else {
-      navigate('/cart');
+      showToast('Tracking number not available yet', 'warning');
     }
   };
 
-  const handleContinueShopping = () => {
-    navigate('/browse');
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'pending': return 'text-orange-600 bg-orange-100';
+      case 'confirmed': return 'text-blue-600 bg-blue-100';
+      case 'picked_up': return 'text-purple-600 bg-purple-100';
+      case 'in_transit': return 'text-indigo-600 bg-indigo-100';
+      case 'delivered': return 'text-green-600 bg-green-100';
+      case 'cancelled': return 'text-red-600 bg-red-100';
+      default: return 'text-gray-600 bg-gray-100';
+    }
   };
 
-  if (orderComplete) {
+  const getStatusIcon = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'pending': return '⏳';
+      case 'confirmed': return '✅';
+      case 'picked_up': return '📦';
+      case 'in_transit': return '🚚';
+      case 'delivered': return '🎉';
+      case 'cancelled': return '❌';
+      default: return '📋';
+    }
+  };
+
+  if (loading) {
     return (
-      <div style={{ maxWidth: 600, margin: "40px auto", padding: "0 20px" }}>
-        <div style={{ 
-          background: "#fff", 
-          borderRadius: 16, 
-          boxShadow: "0 4px 24px rgba(0,0,0,0.05)", 
-          padding: 40,
-          textAlign: "center"
-        }}>
-          <div style={{ fontSize: "4rem", marginBottom: 20 }}>✅</div>
-          <h2 style={{ color: "#22a06b", marginBottom: 16, fontSize: "1.8rem" }}>
-            Order Confirmed!
-          </h2>
-          <p style={{ color: "#666", marginBottom: 24, fontSize: "1.1rem" }}>
-            Thank you for your order. You will receive a confirmation email shortly with tracking details.
-          </p>
-          <div style={{ 
-            background: "#f0f9f4", 
-            border: "1px solid #22a06b", 
-            borderRadius: 12, 
-            padding: 16, 
-            marginBottom: 24 
-          }}>
-            <p style={{ margin: 0, color: "#22a06b", fontWeight: 600 }}>
-              Order Total: ₹{orderTotal.toLocaleString()}
-            </p>
-          </div>
-          <Button 
-            variant="premium" 
-            onClick={handleContinueShopping}
-            size="large"
-          >
-            Continue Shopping
-          </Button>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 via-blue-50 to-orange-50">
+        <div className="text-center">
+          <div className="loading-spinner mx-auto mb-4"></div>
+          <p className="text-violet-600 font-semibold">Loading delivery details...</p>
         </div>
       </div>
     );
   }
 
-  if (orderItems.length === 0) {
+  if (!delivery) {
     return (
-      <div style={{ maxWidth: 600, margin: "40px auto", padding: "0 20px" }}>
-        <div style={{ 
-          background: "#fff", 
-          borderRadius: 16, 
-          boxShadow: "0 4px 24px rgba(0,0,0,0.05)", 
-          padding: 40,
-          textAlign: "center"
-        }}>
-          <div style={{ fontSize: "3rem", marginBottom: 16 }}>📦</div>
-          <h2 style={{ color: "#232F3E", marginBottom: 16 }}>No Items to Deliver</h2>
-          <p style={{ color: "#666", marginBottom: 24 }}>
-            Your cart is empty. Add some items to proceed with delivery.
-          </p>
-          <Button variant="premium" onClick={() => navigate('/browse')}>
-            Browse Items
-          </Button>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 via-blue-50 to-orange-50">
+        <div className="card text-center">
+          <div className="text-6xl mb-4">❌</div>
+          <h2 className="text-2xl font-bold text-gray-700 mb-4">Delivery Not Found</h2>
+          <p className="text-gray-500 mb-6">The delivery you're looking for doesn't exist.</p>
+          <button 
+            onClick={() => navigate('/')}
+            className="button primary"
+          >
+            🏠 Go Home
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: 800, margin: "40px auto", padding: "0 20px" }}>
-      <div style={{ 
-        background: "#fff", 
-        borderRadius: 16, 
-        boxShadow: "0 4px 24px rgba(0,0,0,0.05)", 
-        padding: 32 
-      }}>
-        <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <h2 style={{ fontWeight: 800, fontSize: 28, marginBottom: 8, color: "#232F3E" }}>
-            Delivery Details
-          </h2>
-          <p style={{ color: "#666", fontSize: "1rem" }}>
-            Review your order and provide delivery information
+    <div className="min-h-screen bg-gradient-to-br from-violet-50 via-blue-50 to-orange-50">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-violet-600 via-blue-600 to-orange-600 bg-clip-text text-transparent mb-4">
+            🚚 Delivery Details
+          </h1>
+          <p className="text-gray-600 text-lg">
+            Track your delivery and manage delivery information
           </p>
         </div>
 
-        {/* Order Summary */}
-        <div style={{ 
-          marginBottom: 32, 
-          padding: 24, 
-          background: "#f7faff", 
-          borderRadius: 16,
-          border: "1px solid #e0e7ff"
-        }}>
-          <h4 style={{ margin: "0 0 16px 0", color: "#232F3E", fontSize: "1.2rem", fontWeight: 700 }}>
-            Order Summary ({orderItems.reduce((sum, item) => sum + item.quantity, 0)} items)
-          </h4>
-          
-          <div style={{ marginBottom: 16 }}>
-            {orderItems.map((orderItem, index) => (
-              <div key={orderItem.id || index} style={{ 
-                display: "flex", 
-                alignItems: "center", 
-                gap: 16, 
-                marginBottom: 12,
-                paddingBottom: 12,
-                borderBottom: index < orderItems.length - 1 ? "1px solid #e0e7ff" : "none"
-              }}>
-                <img 
-                  src={orderItem.image || "https://via.placeholder.com/60x60?text=Item"} 
-                  alt={orderItem.name} 
-                  style={{ 
-                    width: 60, 
-                    height: 60, 
-                    borderRadius: 8, 
-                    objectFit: "cover",
-                    border: "1px solid #e0e7ff"
-                  }}
-                  onError={e => { 
-                    e.target.onerror = null; 
-                    e.target.src = "https://via.placeholder.com/60x60?text=Item"; 
-                  }}
-                />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, color: "#232F3E", marginBottom: 4 }}>
-                    {orderItem.name}
-                  </div>
-                  {orderItem.category && (
-                    <div style={{ color: "#a259f7", fontSize: "0.9rem", marginBottom: 4 }}>
-                      {orderItem.category}
-                    </div>
-                  )}
-                  <div style={{ color: "#666", fontSize: "0.9rem" }}>
-                    Quantity: {orderItem.quantity}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Delivery Status */}
+          <div className="card">
+            <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
+              <span className="mr-2">📊</span>
+              Delivery Status
+            </h2>
+            
+            <div className="space-y-6">
+              {/* Current Status */}
+              <div className="text-center p-6 bg-gradient-to-r from-violet-50 to-blue-50 rounded-lg border border-violet-200">
+                <div className="text-4xl mb-3">{getStatusIcon(delivery.status)}</div>
+                <div className={`text-lg font-bold px-4 py-2 rounded-full inline-block ${getStatusColor(delivery.status)}`}>
+                  {delivery.status?.replace('_', ' ').toUpperCase()}
+                </div>
+                <p className="text-gray-600 mt-2">
+                  {delivery.status === 'pending' && 'Your delivery is being processed'}
+                  {delivery.status === 'confirmed' && 'Delivery has been confirmed'}
+                  {delivery.status === 'picked_up' && 'Package has been picked up'}
+                  {delivery.status === 'in_transit' && 'Package is on its way'}
+                  {delivery.status === 'delivered' && 'Package has been delivered'}
+                  {delivery.status === 'cancelled' && 'Delivery has been cancelled'}
+                </p>
+              </div>
+
+              {/* Tracking Information */}
+              {delivery.trackingNumber && (
+                <div className="bg-gradient-to-r from-blue-50 to-orange-50 p-4 rounded-lg border border-blue-200">
+                  <h3 className="font-semibold text-gray-800 mb-2 flex items-center">
+                    <span className="mr-2">🔍</span>
+                    Tracking Number
+                  </h3>
+                  <div className="flex items-center justify-between">
+                    <code className="bg-white px-3 py-2 rounded border font-mono text-sm">
+                      {delivery.trackingNumber}
+                    </code>
+                    <button
+                      onClick={handleTrackDelivery}
+                      className="button secondary text-sm px-4 py-2"
+                    >
+                      Track
+                    </button>
                   </div>
                 </div>
-                <div style={{ textAlign: "right" }}>
-                  <div style={{ color: "#FFD814", fontWeight: 700, fontSize: "1.1rem" }}>
-                    ₹{(orderItem.price * orderItem.quantity).toLocaleString()}
+              )}
+
+              {/* Delivery Partner */}
+              {delivery.partner && (
+                <div className="bg-gradient-to-r from-orange-50 to-pink-50 p-4 rounded-lg border border-orange-200">
+                  <h3 className="font-semibold text-gray-800 mb-2 flex items-center">
+                    <span className="mr-2">🤝</span>
+                    Delivery Partner
+                  </h3>
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-gray-700">{delivery.partner}</span>
+                    <div className="badge orange">Verified</div>
                   </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Delivery Address */}
+          <div className="card">
+            <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
+              <span className="mr-2">📍</span>
+              Delivery Address
+            </h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  🏠 Street Address
+                </label>
+                <input
+                  type="text"
+                  value={deliveryAddress.street}
+                  onChange={(e) => handleAddressChange('street', e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-violet-200 bg-white/80 backdrop-blur-sm rounded-lg focus:border-violet-500 focus:ring-4 focus:ring-violet-200 transition-all duration-300"
+                  placeholder="Enter street address"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    🏙️ City
+                  </label>
+                  <input
+                    type="text"
+                    value={deliveryAddress.city}
+                    onChange={(e) => handleAddressChange('city', e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-violet-200 bg-white/80 backdrop-blur-sm rounded-lg focus:border-violet-500 focus:ring-4 focus:ring-violet-200 transition-all duration-300"
+                    placeholder="Enter city"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    🗺️ State
+                  </label>
+                  <input
+                    type="text"
+                    value={deliveryAddress.state}
+                    onChange={(e) => handleAddressChange('state', e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-violet-200 bg-white/80 backdrop-blur-sm rounded-lg focus:border-violet-500 focus:ring-4 focus:ring-violet-200 transition-all duration-300"
+                    placeholder="Enter state"
+                  />
                 </div>
               </div>
-            ))}
-          </div>
-          
-          <div style={{ 
-            borderTop: "2px solid #e0e7ff", 
-            paddingTop: 16, 
-            display: "flex", 
-            justifyContent: "space-between", 
-            alignItems: "center" 
-          }}>
-            <span style={{ fontSize: "1.2rem", fontWeight: 700, color: "#232F3E" }}>
-              Total:
-            </span>
-            <span style={{ fontSize: "1.4rem", fontWeight: 800, color: "#FFD814" }}>
-              ₹{orderTotal.toLocaleString()}
-            </span>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    📮 Pincode
+                  </label>
+                  <input
+                    type="text"
+                    value={deliveryAddress.pincode}
+                    onChange={(e) => handleAddressChange('pincode', e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-violet-200 bg-white/80 backdrop-blur-sm rounded-lg focus:border-violet-500 focus:ring-4 focus:ring-violet-200 transition-all duration-300"
+                    placeholder="Enter pincode"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    📞 Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    value={deliveryAddress.phone}
+                    onChange={(e) => handleAddressChange('phone', e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-violet-200 bg-white/80 backdrop-blur-sm rounded-lg focus:border-violet-500 focus:ring-4 focus:ring-violet-200 transition-all duration-300"
+                    placeholder="Enter phone number"
+                  />
+                </div>
+              </div>
+
+              <button
+                onClick={handleUpdateAddress}
+                disabled={updating}
+                className="w-full button primary py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {updating ? (
+                  <div className="flex items-center justify-center">
+                    <div className="loading-spinner mr-2"></div>
+                    Updating Address...
+                  </div>
+                ) : (
+                  '💾 Update Address'
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Delivery Form */}
-        {orderProcessing ? (
-          <div style={{ textAlign: "center", padding: "40px 20px" }}>
-            <div className="loading-spinner" style={{ margin: "0 auto 16px" }}></div>
-            <h3 style={{ color: "#232F3E", marginBottom: 8 }}>Processing Your Order...</h3>
-            <p style={{ color: "#666" }}>Please wait while we confirm your order details.</p>
+        {/* Delivery Timeline */}
+        {delivery.timeline && delivery.timeline.length > 0 && (
+          <div className="card mt-8">
+            <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
+              <span className="mr-2">⏰</span>
+              Delivery Timeline
+            </h2>
+            
+            <div className="space-y-4">
+              {delivery.timeline.map((event, index) => (
+                <div key={index} className="flex items-start gap-4">
+                  <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-r from-violet-500 to-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                    {index + 1}
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-gray-800">{event.status}</div>
+                    <div className="text-sm text-gray-600">{event.description}</div>
+                    <div className="text-xs text-gray-500 mt-1">{new Date(event.timestamp).toLocaleString()}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        ) : (
-          <DeliveryForm 
-            onSubmit={handleSubmit} 
-            onBack={handleBackToCart}
-          />
         )}
+
+        {/* Delivery Information */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+          <div className="card text-center">
+            <div className="text-3xl mb-3">📦</div>
+            <h3 className="font-semibold text-gray-800 mb-2">Package Weight</h3>
+            <div className="text-2xl font-bold text-orange-600">
+              {delivery.weight || 'N/A'} kg
+            </div>
+          </div>
+          
+          <div className="card text-center">
+            <div className="text-3xl mb-3">📏</div>
+            <h3 className="font-semibold text-gray-800 mb-2">Package Size</h3>
+            <div className="text-2xl font-bold text-blue-600">
+              {delivery.dimensions || 'N/A'}
+            </div>
+          </div>
+          
+          <div className="card text-center">
+            <div className="text-3xl mb-3">💰</div>
+            <h3 className="font-semibold text-gray-800 mb-2">Delivery Cost</h3>
+            <div className="text-2xl font-bold text-violet-600">
+              ₹{delivery.cost || '0'}
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+          <button
+            onClick={() => navigate('/')}
+            className="button primary text-lg px-8 py-4"
+          >
+            🏠 Back to Home
+          </button>
+          
+          <button
+            onClick={() => navigate('/notifications')}
+            className="button secondary text-lg px-8 py-4"
+          >
+            🔔 View Notifications
+          </button>
+          
+          <button
+            onClick={() => showToast('Support feature coming soon!', 'info')}
+            className="button accent text-lg px-8 py-4"
+          >
+            🆘 Get Help
+          </button>
+        </div>
+
+        {/* Delivery Tips */}
+        <div className="mt-12 card">
+          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
+            <span className="mr-2">💡</span>
+            Delivery Tips
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex items-start gap-3">
+              <div className="text-2xl">📱</div>
+              <div>
+                <div className="font-semibold text-gray-800">Keep Phone Ready</div>
+                <div className="text-sm text-gray-600">Ensure your phone is charged and accessible for delivery calls</div>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="text-2xl">🏠</div>
+              <div>
+                <div className="font-semibold text-gray-800">Be Available</div>
+                <div className="text-sm text-gray-600">Try to be available during the estimated delivery window</div>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="text-2xl">📋</div>
+              <div>
+                <div className="font-semibold text-gray-800">Check Package</div>
+                <div className="text-sm text-gray-600">Inspect the package before signing for delivery</div>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="text-2xl">📞</div>
+              <div>
+                <div className="font-semibold text-gray-800">Contact Support</div>
+                <div className="text-sm text-gray-600">Reach out if you have any delivery concerns</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
-}
+};
+
+export default DeliveryPage;

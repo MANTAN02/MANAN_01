@@ -1,272 +1,307 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../AuthContext';
 import { useCart } from '../components/CartContext';
-import Button from '../components/Button';
+import { useToast } from '../ToastContext';
+import { callBackendFunction } from '../AuthContext';
 import '../styles.css';
 
-export default function CartPage() {
+const CartPage = () => {
+  const [cartItems, setCartItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
+  const { user } = useAuth();
+  const { removeFromCart, updateQuantity } = useCart();
+  const { showToast } = useToast();
   const navigate = useNavigate();
-  const { cartItems, updateQuantity, removeFromCart, getCartTotal, clearCart, isLoading, error } = useCart();
-  const [processingCheckout, setProcessingCheckout] = useState(false);
+
+  useEffect(() => {
+    fetchCartItems();
+  }, []);
+
+  const fetchCartItems = async () => {
+    try {
+      const items = await callBackendFunction('getCartItems', 'GET');
+      setCartItems(items || []);
+    } catch (error) {
+      showToast('Failed to load cart items', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleQuantityChange = async (itemId, newQuantity) => {
+    if (newQuantity < 1) return;
+    
+    setUpdating(true);
     try {
-      if (newQuantity < 1) {
-        await removeFromCart(itemId);
-      } else {
-        await updateQuantity(itemId, newQuantity);
-      }
+      await updateQuantity(itemId, newQuantity);
+      await fetchCartItems(); // Refresh cart
+      showToast('Cart updated successfully!', 'success');
     } catch (error) {
-      console.error('Error updating quantity:', error);
+      showToast('Failed to update quantity', 'error');
+    } finally {
+      setUpdating(false);
     }
   };
 
   const handleRemoveItem = async (itemId) => {
+    setUpdating(true);
     try {
       await removeFromCart(itemId);
+      await fetchCartItems(); // Refresh cart
+      showToast('Item removed from cart', 'success');
     } catch (error) {
-      console.error('Error removing item:', error);
+      showToast('Failed to remove item', 'error');
+    } finally {
+      setUpdating(false);
     }
+  };
+
+  const handleCheckout = () => {
+    if (cartItems.length === 0) {
+      showToast('Your cart is empty!', 'warning');
+      return;
+    }
+    navigate('/checkout');
   };
 
   const handleContinueShopping = () => {
-    navigate('/browse');
+    navigate('/');
   };
 
-  const handleProceedToCheckout = async () => {
-    try {
-      setProcessingCheckout(true);
-      // Simulate checkout processing
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      navigate('/delivery');
-    } catch (error) {
-      console.error('Error proceeding to checkout:', error);
-    } finally {
-      setProcessingCheckout(false);
-    }
+  const calculateTotal = () => {
+    return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
   };
 
-  const handleClearCart = async () => {
-    if (window.confirm('Are you sure you want to clear your cart?')) {
-      try {
-        await clearCart();
-      } catch (error) {
-        console.error('Error clearing cart:', error);
-      }
-    }
+  const calculateItemsCount = () => {
+    return cartItems.reduce((count, item) => count + item.quantity, 0);
   };
 
-  const total = getCartTotal();
-  const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-
-  if (error) {
+  if (loading) {
     return (
-      <div style={{ maxWidth: 800, margin: "40px auto", padding: "0 20px" }}>
-        <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 4px 24px rgba(0,0,0,0.05)", padding: 32, textAlign: "center" }}>
-          <div style={{ fontSize: "2rem", marginBottom: 16, color: "#ff4d6d" }}>⚠️</div>
-          <h2 style={{ color: "#ff4d6d", marginBottom: 16 }}>Error Loading Cart</h2>
-          <p style={{ color: "#666", marginBottom: 24 }}>{error}</p>
-          <Button onClick={() => window.location.reload()}>Retry</Button>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 via-blue-50 to-orange-50">
+        <div className="text-center">
+          <div className="loading-spinner mx-auto mb-4"></div>
+          <p className="text-violet-600 font-semibold">Loading your cart...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: 800, margin: "40px auto", padding: "0 20px" }}>
-      <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 4px 24px rgba(0,0,0,0.05)", padding: 32 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-          <h2 style={{ fontWeight: 800, fontSize: 28, color: "#232F3E", margin: 0 }}>
-            Your Cart ({itemCount} {itemCount === 1 ? 'item' : 'items'})
-          </h2>
-          {cartItems.length > 0 && (
-            <Button 
-              variant="danger" 
-              size="small" 
-              onClick={handleClearCart}
-              disabled={isLoading}
-            >
-              Clear Cart
-            </Button>
-          )}
+    <div className="min-h-screen bg-gradient-to-br from-violet-50 via-blue-50 to-orange-50">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-violet-600 via-blue-600 to-orange-600 bg-clip-text text-transparent mb-4">
+            🛒 Your Shopping Cart
+          </h1>
+          <p className="text-gray-600 text-lg">
+            {cartItems.length === 0 
+              ? "Your cart is empty, but amazing items await!" 
+              : `You have ${calculateItemsCount()} item${calculateItemsCount() !== 1 ? 's' : ''} in your cart`
+            }
+          </p>
         </div>
-        
+
         {cartItems.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "60px 20px" }}>
-            <div style={{ fontSize: "4rem", marginBottom: 16 }}>🛒</div>
-            <h3 style={{ color: "#232F3E", marginBottom: 8, fontSize: "1.5rem" }}>Your cart is empty</h3>
-            <p style={{ color: "#666", marginBottom: 32, fontSize: "1.1rem" }}>Add some amazing items to get started!</p>
-            <Button 
-              variant="premium"
-              size="large"
-              onClick={handleContinueShopping}
-            >
-              Browse Items
-            </Button>
+          /* Empty Cart State */
+          <div className="card text-center py-16">
+            <div className="text-8xl mb-6 animate-bounce">🛍️</div>
+            <h2 className="text-2xl font-bold text-gray-700 mb-4">Your cart is empty</h2>
+            <p className="text-gray-500 mb-8 max-w-md mx-auto">
+              Start exploring amazing items to swap and add them to your cart!
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button 
+                onClick={handleContinueShopping}
+                className="button primary text-lg px-8 py-4"
+              >
+                🚀 Start Shopping
+              </button>
+              <button 
+                onClick={() => navigate('/list')}
+                className="button secondary text-lg px-8 py-4"
+              >
+                📝 List Your Item
+              </button>
+            </div>
           </div>
         ) : (
-          <>
-            <div style={{ marginBottom: 32 }}>
-              {cartItems.map(item => (
-                <div key={item.id} style={{ 
-                  display: "flex", 
-                  alignItems: "center", 
-                  padding: "20px 0", 
-                  borderBottom: "1px solid #eee",
-                  gap: 20
-                }}>
-                  <img 
-                    src={item.image || "https://via.placeholder.com/100x100?text=No+Image"} 
-                    alt={item.name}
-                    style={{ 
-                      width: 100, 
-                      height: 100, 
-                      borderRadius: 12, 
-                      objectFit: "cover",
-                      border: "2px solid #e0e7ff"
-                    }}
-                    onError={e => { 
-                      e.target.onerror = null; 
-                      e.target.src = "https://via.placeholder.com/100x100?text=No+Image"; 
-                    }}
-                  />
-                  <div style={{ flex: 1 }}>
-                    <h4 style={{ margin: "0 0 8px 0", color: "#232F3E", fontSize: "1.2rem", fontWeight: 700 }}>
-                      {item.name}
-                    </h4>
-                    {item.category && (
-                      <p style={{ margin: "0 0 8px 0", color: "#a259f7", fontSize: "0.9rem", fontWeight: 600 }}>
-                        {item.category}
-                      </p>
-                    )}
-                    {item.description && (
-                      <p style={{ margin: "0 0 8px 0", color: "#666", fontSize: "0.95rem" }}>
-                        {item.description.length > 100 ? `${item.description.substring(0, 100)}...` : item.description}
-                      </p>
-                    )}
-                    <p style={{ margin: 0, color: "#FFD814", fontWeight: 700, fontSize: "1.1rem" }}>
-                      ₹{item.price} each
-                    </p>
+          /* Cart Items */
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Cart Items List */}
+            <div className="lg:col-span-2">
+              <div className="card">
+                <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                  <span className="mr-2">📦</span>
+                  Cart Items ({calculateItemsCount()})
+                </h2>
+                
+                <div className="space-y-6">
+                  {cartItems.map((item) => (
+                    <div key={item.id} className="flex flex-col sm:flex-row gap-4 p-4 bg-white/50 rounded-lg border border-violet-200 hover:shadow-lg transition-all duration-300">
+                      {/* Item Image */}
+                      <div className="flex-shrink-0">
+                        <img
+                          src={item.imageUrl || 'https://via.placeholder.com/100x100?text=Item'}
+                          alt={item.title}
+                          className="w-24 h-24 object-cover rounded-lg border-2 border-violet-200"
+                        />
+                      </div>
+
+                      {/* Item Details */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-2 truncate">
+                          {item.title}
+                        </h3>
+                        <p className="text-gray-600 text-sm mb-2 line-clamp-2">
+                          {item.description}
+                        </p>
+                        <div className="flex items-center justify-between">
+                          <div className="text-lg font-bold text-orange-600">
+                            ₹{item.price?.toLocaleString()}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-500">Qty:</span>
+                            <div className="flex items-center border border-violet-200 rounded-lg">
+                              <button
+                                onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                                disabled={updating || item.quantity <= 1}
+                                className="px-3 py-1 text-violet-600 hover:bg-violet-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                              >
+                                -
+                              </button>
+                              <span className="px-3 py-1 text-gray-700 font-semibold min-w-[2rem] text-center">
+                                {item.quantity}
+                              </span>
+                              <button
+                                onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                                disabled={updating}
+                                className="px-3 py-1 text-violet-600 hover:bg-violet-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Remove Button */}
+                      <div className="flex-shrink-0">
+                        <button
+                          onClick={() => handleRemoveItem(item.id)}
+                          disabled={updating}
+                          className="text-red-500 hover:text-red-700 p-2 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
+                          title="Remove item"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Cart Summary */}
+            <div className="lg:col-span-1">
+              <div className="card sticky top-8">
+                <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                  <span className="mr-2">📋</span>
+                  Order Summary
+                </h2>
+
+                {/* Summary Details */}
+                <div className="space-y-4 mb-6">
+                  <div className="flex justify-between text-gray-600">
+                    <span>Items ({calculateItemsCount()}):</span>
+                    <span>₹{calculateTotal().toLocaleString()}</span>
                   </div>
-                  
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <button 
-                      onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
-                      disabled={isLoading || item.quantity <= 1}
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: "50%",
-                        border: "2px solid #ddd",
-                        background: item.quantity <= 1 ? "#f5f5f5" : "#fff",
-                        cursor: item.quantity <= 1 ? "not-allowed" : "pointer",
-                        fontSize: "18px",
-                        fontWeight: "bold",
-                        color: item.quantity <= 1 ? "#ccc" : "#232F3E",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        transition: "all 0.2s"
-                      }}
-                    >
-                      −
-                    </button>
-                    <span style={{ 
-                      minWidth: 40, 
-                      textAlign: "center", 
-                      fontWeight: 700, 
-                      fontSize: "1.1rem",
-                      color: "#232F3E"
-                    }}>
-                      {item.quantity}
+                  <div className="flex justify-between text-gray-600">
+                    <span>Delivery:</span>
+                    <span className="text-green-600">Free</span>
+                  </div>
+                  <div className="flex justify-between text-gray-600">
+                    <span>Platform Fee:</span>
+                    <span>₹{(calculateTotal() * 0.05).toFixed(0)}</span>
+                  </div>
+                  <hr className="border-gray-300" />
+                  <div className="flex justify-between text-xl font-bold text-gray-800">
+                    <span>Total:</span>
+                    <span className="text-orange-600">
+                      ₹{(calculateTotal() * 1.05).toFixed(0)}
                     </span>
-                    <button 
-                      onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-                      disabled={isLoading}
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: "50%",
-                        border: "2px solid #ddd",
-                        background: "#fff",
-                        cursor: "pointer",
-                        fontSize: "18px",
-                        fontWeight: "bold",
-                        color: "#232F3E",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        transition: "all 0.2s"
-                      }}
-                    >
-                      +
-                    </button>
-                  </div>
-                  
-                  <div style={{ textAlign: "right", minWidth: 100 }}>
-                    <p style={{ margin: "0 0 8px 0", fontWeight: 700, color: "#232F3E", fontSize: "1.2rem" }}>
-                      ₹{item.price * item.quantity}
-                    </p>
-                    <Button 
-                      variant="danger" 
-                      size="small"
-                      onClick={() => handleRemoveItem(item.id)}
-                      disabled={isLoading}
-                    >
-                      Remove
-                    </Button>
                   </div>
                 </div>
-              ))}
-            </div>
-            
-            <div style={{ 
-              borderTop: "2px solid #eee", 
-              paddingTop: 24, 
-              marginTop: 24 
-            }}>
-              <div style={{ 
-                display: "flex", 
-                justifyContent: "space-between", 
-                alignItems: "center",
-                marginBottom: 32
-              }}>
-                <div>
-                  <h3 style={{ margin: "0 0 4px 0", color: "#232F3E", fontSize: "1.3rem" }}>
-                    Subtotal ({itemCount} {itemCount === 1 ? 'item' : 'items'}):
+
+                {/* Action Buttons */}
+                <div className="space-y-4">
+                  <button
+                    onClick={handleCheckout}
+                    disabled={updating}
+                    className="w-full button primary text-lg py-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {updating ? (
+                      <div className="flex items-center justify-center">
+                        <div className="loading-spinner mr-2"></div>
+                        Processing...
+                      </div>
+                    ) : (
+                      '🚀 Proceed to Checkout'
+                    )}
+                  </button>
+                  
+                  <button
+                    onClick={handleContinueShopping}
+                    className="w-full button secondary text-lg py-4"
+                  >
+                    🛍️ Continue Shopping
+                  </button>
+                </div>
+
+                {/* Additional Info */}
+                <div className="mt-6 p-4 bg-gradient-to-r from-violet-50 to-blue-50 rounded-lg border border-violet-200">
+                  <h3 className="font-semibold text-gray-800 mb-2 flex items-center">
+                    <span className="mr-2">💡</span>
+                    Pro Tip
                   </h3>
-                  <p style={{ margin: 0, color: "#666", fontSize: "0.9rem" }}>
-                    Shipping and taxes calculated at checkout
+                  <p className="text-sm text-gray-600">
+                    Add more items to your cart to unlock exclusive discounts and faster delivery options!
                   </p>
                 </div>
-                <h3 style={{ margin: 0, color: "#FFD814", fontWeight: 900, fontSize: "1.8rem" }}>
-                  ₹{total.toLocaleString()}
-                </h3>
-              </div>
-              
-              <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                <Button 
-                  variant="secondary"
-                  style={{ flex: 1, minWidth: "200px" }}
-                  onClick={handleContinueShopping}
-                  disabled={isLoading}
-                >
-                  Continue Shopping
-                </Button>
-                <Button 
-                  variant="premium"
-                  style={{ flex: 1, minWidth: "200px" }}
-                  onClick={handleProceedToCheckout}
-                  loading={processingCheckout}
-                  disabled={isLoading}
-                >
-                  Proceed to Checkout
-                </Button>
               </div>
             </div>
-          </>
+          </div>
         )}
+
+        {/* Features Section */}
+        <div className="mt-16">
+          <h2 className="text-2xl font-bold text-center text-gray-800 mb-8">
+            Why Choose Swapin?
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="card text-center">
+              <div className="text-4xl mb-4">🔄</div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Easy Swapping</h3>
+              <p className="text-gray-600">Swap items directly or pay the difference. No complicated negotiations!</p>
+            </div>
+            <div className="card text-center">
+              <div className="text-4xl mb-4">🚚</div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Fast Delivery</h3>
+              <p className="text-gray-600">Professional delivery partners ensure your items reach safely and quickly.</p>
+            </div>
+            <div className="card text-center">
+              <div className="text-4xl mb-4">🛡️</div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Secure Payments</h3>
+              <p className="text-gray-600">Multiple payment options with secure processing and buyer protection.</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
-}
+};
+
+export default CartPage;

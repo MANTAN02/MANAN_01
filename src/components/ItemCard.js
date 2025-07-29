@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "./CartContext";
 import { useAuth, callBackendFunction } from '../AuthContext';
-import { useToast } from './ToastContext';
+import { useToast } from '../ToastContext';
 import Button from "./Button";
 
 function SwapSymbol() {

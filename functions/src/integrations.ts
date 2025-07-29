@@ -470,16 +470,18 @@ export class SecurityIntegrations {
 
       if (doc.exists) {
         const data = doc.data();
-        const requests = data.requests.filter((timestamp: number) => timestamp > windowStart);
+        if (data) {
+          const requests = data.requests.filter((timestamp: number) => timestamp > windowStart);
         
-        if (requests.length >= limit) {
-          return { allowed: false, remaining: 0, resetTime: windowStart + window };
-        }
+          if (requests.length >= limit) {
+            return { allowed: false, remaining: 0, resetTime: windowStart + window };
+          }
 
-        requests.push(now);
-        await rateLimitRef.update({ requests, lastUpdated: now });
-        
-        return { allowed: true, remaining: limit - requests.length, resetTime: windowStart + window };
+          requests.push(now);
+          await rateLimitRef.update({ requests, lastUpdated: now });
+          
+          return { allowed: true, remaining: limit - requests.length, resetTime: windowStart + window };
+        }
       } else {
         await rateLimitRef.set({
           requests: [now],

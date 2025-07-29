@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "../components/Button";
 import { useAuth, callBackendFunction } from '../AuthContext';
-import { useToast } from '../components/ToastContext';
+import { useToast } from '../ToastContext';
 import "../styles.css";
 
 function Spinner() {
