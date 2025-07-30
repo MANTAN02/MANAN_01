@@ -3,7 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@firebasegen/default-connector": "file:dataconnect-generated/js/default-connector",
     "@nhost/nhost-js": "^3.3.0",
     "@react-oauth/google": "^0.12.2",
     "@tailwindcss/postcss": "^4.1.11",
