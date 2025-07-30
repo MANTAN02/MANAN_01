@@ -1,4 +1,4 @@
-git {
+{
   "version": 2,
   "name": "swapin-platform",
   "builds": [
